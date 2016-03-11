@@ -6,11 +6,16 @@ module RS2BQ
     end
 
     def columns
-      @columns ||= @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = 'public' AND "tablename" = $1|, [@table_name]).map do |row|
-        name = row['column']
-        type = row['type']
-        nullable = row['notnull'] == 'f'
-        Column.new(name, type, nullable)
+      @columns ||= begin
+        rows = @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = 'public' AND "tablename" = $1|, [@table_name])
+        columns = rows.map do |row|
+          name = row['column']
+          type = row['type']
+          nullable = row['notnull'] == 'f'
+          Column.new(name, type, nullable)
+        end
+        columns.sort_by!(&:name)
+        columns
       end
     end
 

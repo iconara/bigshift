@@ -34,13 +34,21 @@ module RS2BQ
 
       it 'returns all columns as Column objects' do
         columns = table_schema.columns
-        aggregate_failures do
-          expect(columns[0].name).to eq('id')
-          expect(columns[1].name).to eq('name')
-          expect(columns[2].type).to eq('character varying(100)')
-          expect(columns[3].nullable?).to eq(true)
-          expect(columns[0].nullable?).to eq(false)
+        columns_by_name = columns.each_with_object({}) do |column, columns|
+          columns[column.name] = column
         end
+        aggregate_failures do
+          expect(columns_by_name['id'].name).to eq('id')
+          expect(columns_by_name['name'].name).to eq('name')
+          expect(columns_by_name['fax_number'].type).to eq('character varying(100)')
+          expect(columns_by_name['year_of_birth'].nullable?).to eq(true)
+          expect(columns_by_name['id'].nullable?).to eq(false)
+        end
+      end
+
+      it 'returns the columns in alphabetical order' do
+        columns = table_schema.columns
+        expect(columns.map(&:name)).to eq(%w[fax_number id name year_of_birth])
       end
     end
   end
