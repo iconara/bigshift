@@ -1,8 +1,9 @@
 module RS2BQ
   class RedshiftUnloader
-    def initialize(redshift_connection, aws_credentials)
+    def initialize(redshift_connection, aws_credentials, options={})
       @redshift_connection = redshift_connection
       @aws_credentials = aws_credentials
+      @allow_overwrite = options[:allow_overwrite]
     end
 
     def unload_to(table_name, s3_prefix)
@@ -17,6 +18,7 @@ module RS2BQ
       unload_sql << %q< DELIMITER ','>
       unload_sql << %q< ADDQUOTES>
       unload_sql << %q< ESCAPE>
+      unload_sql << %q< ALLOWOVERWRITE> if @allow_overwrite
       @redshift_connection.exec(unload_sql)
     end
   end

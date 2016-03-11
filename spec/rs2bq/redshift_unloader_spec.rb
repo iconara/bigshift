@@ -1,7 +1,7 @@
 module RS2BQ
   describe RedshiftUnloader do
     let :unloader do
-      described_class.new(redshift_connection, aws_credentials)
+      described_class.new(redshift_connection, aws_credentials, options)
     end
 
     let :redshift_connection do
@@ -13,6 +13,10 @@ module RS2BQ
         'aws_access_key_id' => 'foo',
         'aws_secret_access_key' => 'bar',
       }
+    end
+
+    let :options do
+      {}
     end
 
     let :column_rows do
@@ -63,6 +67,20 @@ module RS2BQ
 
       it 'explicitly selects all columns from the table' do
         expect(unload_command).to include(%q<('SELECT "fax_number", "id", "name", "year_of_birth" FROM "my_table"')>)
+      end
+
+      it 'does not allow overwrites of the destination' do
+        expect(unload_command).not_to include(%q<ALLOWOVERWRITE>)
+      end
+
+      context 'when the :allow_overwrite option is true' do
+        let :options do
+          super().merge(allow_overwrite: true)
+        end
+
+        it 'adds ALLOWOVERWRITE to the unload command' do
+          expect(unload_command).to include(%q<ALLOWOVERWRITE>)
+        end
       end
     end
   end
