@@ -1,0 +1,1 @@
+require 'rs2bq'

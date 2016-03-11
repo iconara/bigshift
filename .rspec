@@ -1,0 +1,5 @@
+--color
+--tty
+--format doc
+-Ilib
+-rspec_helper

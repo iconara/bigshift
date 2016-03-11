@@ -1,0 +1,4 @@
+/tmp
+/config
+Gemfile.lock
+.ruby-*
