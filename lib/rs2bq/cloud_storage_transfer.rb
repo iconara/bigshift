@@ -10,7 +10,7 @@ module RS2BQ
     end
 
     def copy_to_cloud_storage(s3_bucket, s3_path_prefix, cloud_storage_bucket, options={})
-      poll_interval = options[:poll_interval] || 10
+      poll_interval = options[:poll_interval] || 60
       transfer_job = create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, options[:description])
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
       @logger.info(sprintf('Transferring objects from s3://%s/%s to gs://%s/%s', s3_bucket, s3_path_prefix, cloud_storage_bucket, s3_path_prefix))
