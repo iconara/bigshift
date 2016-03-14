@@ -1,7 +1,7 @@
 module RS2BQ
   describe CloudStorageTransfer do
     let :transfer do
-      described_class.new(storage_transfer_service, 'my_project', aws_credentials, clock: clock, thread: thread)
+      described_class.new(storage_transfer_service, 'my_project', aws_credentials, clock: clock, thread: thread, logger: logger)
     end
 
     let :storage_transfer_service do
@@ -23,6 +23,10 @@ module RS2BQ
       double(:thread)
     end
 
+    let :logger do
+      double(:logger, debug: nil, info: nil, warn: nil)
+    end
+
     let :created_jobs do
       []
     end
@@ -33,13 +37,14 @@ module RS2BQ
 
     let :transfer_operations do
       [
-        double(:operation, done?: true)
+        double(:operation, done?: true, metadata: {})
       ]
     end
 
     before do
       allow(storage_transfer_service).to receive(:create_transfer_job) do |j|
         created_jobs << j
+        allow(job).to receive(:description).and_return(j.description)
         job
       end
       allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(double(operations: transfer_operations))
@@ -124,20 +129,40 @@ module RS2BQ
           expect(filter).to eq('project_id' => 'my_project', 'job_names' => ['my_job'])
         end
 
+        it 'logs that the transfer has started' do
+          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
+          expect(logger).to have_received(:info).with('Transferring objects from s3://my-s3-bucket/the/prefix to gs://my-gcs-bucket/the/prefix')
+        end
+
         it 'waits until the transfer job is done' do
           allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(
             double(operations: nil),
             double(operations: []),
             double(operations: []),
-            double(operations: [double(done?: false)]),
-            double(operations: [double(done?: false)]),
-            double(operations: [double(done?: true)]),
+            double(operations: [double(done?: false, metadata: {})]),
+            double(operations: [double(done?: false, metadata: {})]),
+            double(operations: [double(done?: true, metadata: {})]),
           )
           transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
           expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(6).times
           expect(thread).to have_received(:sleep).with(13).exactly(5).times
         end
+
+        it 'logs the status when the job is not done' do
+          allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(
+            double(operations: nil),
+            double(operations: []),
+            double(operations: []),
+            double(operations: [double(done?: false, metadata: {'status' => 'pending'})]),
+            double(operations: [double(done?: false, metadata: {'status' => 'pending'})]),
+            double(operations: [double(done?: true, metadata: {})]),
+          )
+          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+          expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: unknown)').exactly(3).times
+          expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: pending)').exactly(2).times
+        end
       end
     end
   end
 end
+# 
