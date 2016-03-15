@@ -58,7 +58,7 @@ module RS2BQ
         operations_response = @storage_transfer_service.list_transfer_operations('transferOperations', filter: JSON.dump({project_id: @project_id, job_names: [transfer_job.name]}))
         operation = operations_response.operations && operations_response.operations.first
         if operation && operation.done?
-          @logger.info(sprintf('Transfer %s complete', transfer_job.description))
+          handle_completion(transfer_job, operation)
           break
         else
           status = operation && operation.metadata && operation.metadata['status']
@@ -70,6 +70,19 @@ module RS2BQ
           end
           @thread.sleep(poll_interval)
         end
+      end
+    end
+
+    def handle_completion(transfer_job, operation)
+      if operation.metadata['status'] == 'FAILED'
+        raise 'Transfer failed'
+      else
+        message = sprintf('Transfer %s complete', transfer_job.description)
+        if (counters = operation.metadata['counters'])
+          size_in_gib = counters['bytesCopiedToSink'].to_f / 2**30
+          message << sprintf(', %s objects and %.1f GiB copied', counters['objectsCopiedToSink'], size_in_gib)
+        end
+        @logger.info(message)
       end
     end
   end

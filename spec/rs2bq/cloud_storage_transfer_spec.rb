@@ -35,10 +35,8 @@ module RS2BQ
       double(:job, name: 'my_job')
     end
 
-    let :transfer_operations do
-      [
-        double(:operation, done?: true, metadata: {})
-      ]
+    let :transfer_operation do
+      double(:operation, done?: true, metadata: {'status' => 'SUCCESS'})
     end
 
     let :now do
@@ -51,7 +49,7 @@ module RS2BQ
         allow(job).to receive(:description).and_return(j.description)
         job
       end
-      allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(double(operations: transfer_operations))
+      allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(double(operations: [transfer_operation]))
       allow(thread).to receive(:sleep)
     end
 
@@ -160,7 +158,7 @@ module RS2BQ
           allow(storage_transfer_service).to receive(:list_transfer_operations) do |name, options|
             operation_name = name
             filter = JSON.load(options[:filter])
-            double(operations: transfer_operations)
+            double(operations: [transfer_operation])
           end
           transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
           expect(operation_name).to eq('transferOperations')
@@ -177,9 +175,9 @@ module RS2BQ
             double(operations: nil),
             double(operations: []),
             double(operations: []),
-            double(operations: [double(done?: false, metadata: {})]),
-            double(operations: [double(done?: false, metadata: {})]),
-            double(operations: [double(done?: true, metadata: {})]),
+            double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
+            double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
+            double(operations: [double(done?: true, metadata: {'status' => 'SUCCESS'})]),
           )
           transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
           expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(6).times
@@ -195,7 +193,7 @@ module RS2BQ
               double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
               double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
               double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
-              double(operations: [double(done?: true, metadata: {})]),
+              double(operations: [double(done?: true, metadata: {'status' => 'SUCCESS'})]),
             )
             transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
           end
@@ -211,6 +209,34 @@ module RS2BQ
 
           it 'logs when the job is done' do
             expect(logger).to have_received(:info).with('Transfer foobar complete')
+          end
+        end
+
+        context 'when the job fails' do
+          let :transfer_operation do
+            double(done?: true, metadata: {'status' => 'FAILED'})
+          end
+
+          it 'raises an error' do
+            expect { transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket') }.to raise_error(/Transfer failed/)
+          end
+        end
+
+        context 'when the job metadata contains counters' do
+          let :transfer_operation do
+            double(done?: true, metadata: {'status' => 'SUCCESS', 'counters' => counters})
+          end
+
+          let :counters do
+            {
+              'objectsCopiedToSink' => '1106',
+              'bytesCopiedToSink' => '33980210508'
+            }
+          end
+
+          it 'logs statistics about the job when it completes' do
+            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
+            expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.6 GiB copied')
           end
         end
       end
