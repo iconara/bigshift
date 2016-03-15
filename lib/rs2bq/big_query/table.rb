@@ -26,6 +26,7 @@ module RS2BQ
         )
         job = @big_query_service.insert_job(@table_data.table_reference.project_id, job)
         @logger.info(sprintf('Loading rows from %s to the table %s.%s', uri, @table_data.table_reference.dataset_id, @table_data.table_reference.table_id))
+        started = false
         loop do
           job = @big_query_service.get_job(@table_data.table_reference.project_id, job.job_reference.job_id)
           if job.status && job.status.state == 'DONE'
@@ -36,7 +37,12 @@ module RS2BQ
             end
           else
             state = job.status && job.status.state
-            @logger.debug(sprintf('Waiting for job %s (status: %s)', job.job_reference.job_id.inspect, state ? state.inspect : 'unknown'))
+            if state == 'RUNNING' && !started
+              @logger.info('Loading started')
+              started = true
+            else
+              @logger.debug(sprintf('Waiting for job %s (status: %s)', job.job_reference.job_id.inspect, state ? state.inspect : 'unknown'))
+            end
             @thread.sleep(poll_interval)
           end
         end

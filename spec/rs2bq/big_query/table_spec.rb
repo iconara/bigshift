@@ -143,7 +143,7 @@ module RS2BQ
             allow(big_query_service).to receive(:get_job).and_return(
               create_job('my_job_id', nil),
               create_job('my_job_id', 'PENDING'),
-              create_job('my_job_id', 'IN_PROGRESS'),
+              create_job('my_job_id', 'RUNNING'),
               create_job('my_job_id', 'DONE'),
             )
             table.load('my_uri', poll_interval: 13)
@@ -159,13 +159,27 @@ module RS2BQ
             allow(big_query_service).to receive(:get_job).and_return(
               create_job('my_job_id', nil),
               create_job('my_job_id', 'PENDING'),
-              create_job('my_job_id', 'IN_PROGRESS'),
+              create_job('my_job_id', 'RUNNING'),
+              create_job('my_job_id', 'RUNNING'),
               create_job('my_job_id', 'DONE'),
             )
             table.load('my_uri')
             expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: unknown)')
             expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: "PENDING")')
-            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: "IN_PROGRESS")')
+            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: "RUNNING")')
+          end
+
+          it 'logs when the job starts' do
+            allow(big_query_service).to receive(:get_job).and_return(
+              create_job('my_job_id', nil),
+              create_job('my_job_id', 'PENDING'),
+              create_job('my_job_id', 'RUNNING'),
+              create_job('my_job_id', 'RUNNING'),
+              create_job('my_job_id', 'RUNNING'),
+              create_job('my_job_id', 'DONE'),
+            )
+            table.load('my_uri')
+            expect(logger).to have_received(:info).with('Loading started')
           end
 
           context 'when the job fails' do
