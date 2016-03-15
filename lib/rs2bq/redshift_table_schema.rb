@@ -50,7 +50,8 @@ module RS2BQ
 
       def to_sql
         case @type
-        when /^character/, /^numeric/, /int/, /^double/, 'real' then @name
+        when /^character/, /^numeric/, /int/, /^double/, 'real'
+          sprintf('"%s"', @name)
         when /^timestamp/
           sprintf('(EXTRACT(epoch FROM "%s") + EXTRACT(milliseconds FROM "%s")/1000.0)', @name, @name)
         when 'date'

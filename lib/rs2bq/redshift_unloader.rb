@@ -10,7 +10,7 @@ module RS2BQ
       table_schema = RedshiftTableSchema.new(table_name, @redshift_connection)
       credentials = @aws_credentials.map { |pair| pair.join('=') }.join(';')
       select_sql = 'SELECT '
-      select_sql << table_schema.columns.map { |c| %<"#{c.to_sql}"> }.join(', ')
+      select_sql << table_schema.columns.map(&:to_sql).join(', ')
       select_sql << %Q< FROM "#{table_name}">
       unload_sql = %Q<UNLOAD ('#{select_sql}')>
       unload_sql << %Q< TO '#{s3_prefix}'>

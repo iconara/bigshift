@@ -174,12 +174,20 @@ module RS2BQ
         column = described_class.new(name, type, nullable)
       end
 
+      let :type do
+        'int'
+      end
+
       let :name do
         'the_column'
       end
 
       let :nullable do
         false
+      end
+
+      it 'quotes the column name' do
+        expect(column.to_sql).to eq('"the_column"')
       end
 
       context 'when the column type is BOOLEAN' do
