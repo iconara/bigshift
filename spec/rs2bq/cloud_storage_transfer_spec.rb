@@ -186,18 +186,32 @@ module RS2BQ
           expect(thread).to have_received(:sleep).with(13).exactly(5).times
         end
 
-        it 'logs the status when the job is not done' do
-          allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(
-            double(operations: nil),
-            double(operations: []),
-            double(operations: []),
-            double(operations: [double(done?: false, metadata: {'status' => 'pending'})]),
-            double(operations: [double(done?: false, metadata: {'status' => 'pending'})]),
-            double(operations: [double(done?: true, metadata: {})]),
-          )
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
-          expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: unknown)').exactly(3).times
-          expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: pending)').exactly(2).times
+        context 'when the job changes status' do
+          before do
+            allow(storage_transfer_service).to receive(:list_transfer_operations).and_return(
+              double(operations: nil),
+              double(operations: []),
+              double(operations: []),
+              double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
+              double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
+              double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
+              double(operations: [double(done?: true, metadata: {})]),
+            )
+            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+          end
+
+          it 'logs the status when the job is not done' do
+            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: unknown)').exactly(3).times
+            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: IN_PROGRESS)').at_least(:once)
+          end
+
+          it 'logs the status when the job gets an in-progress status' do
+            expect(logger).to have_received(:info).with('Transfer started')
+          end
+
+          it 'logs when the job is done' do
+            expect(logger).to have_received(:info).with('Transfer complete')
+          end
         end
       end
     end
