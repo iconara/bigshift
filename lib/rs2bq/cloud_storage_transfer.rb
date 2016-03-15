@@ -55,8 +55,21 @@ module RS2BQ
     def await_completion(transfer_job, poll_interval)
       started = false
       loop do
-        operations_response = @storage_transfer_service.list_transfer_operations('transferOperations', filter: JSON.dump({project_id: @project_id, job_names: [transfer_job.name]}))
-        operation = operations_response.operations && operations_response.operations.first
+        operation = nil
+        failures = 0
+        begin
+          operations_response = @storage_transfer_service.list_transfer_operations('transferOperations', filter: JSON.dump({project_id: @project_id, job_names: [transfer_job.name]}))
+          operation = operations_response.operations && operations_response.operations.first
+        rescue Google::Apis::ServerError => e
+          failures += 1
+          if failures < 5
+            @logger.debug(sprintf('Error while waiting for job %s, will retry: %s (%s)', transfer_job.name.inspect, e.message.inspect, e.class.name))
+            @thread.sleep(poll_interval)
+            retry
+          else
+            raise sprintf('Transfer failed: %s (%s)', e.message.inspect, e.class.name)
+          end
+        end
         if operation && operation.done?
           handle_completion(transfer_job, operation)
           break

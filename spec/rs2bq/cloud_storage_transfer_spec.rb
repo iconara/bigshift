@@ -239,6 +239,39 @@ module RS2BQ
             expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.6 GiB copied')
           end
         end
+
+        context 'when the server responds with an error' do
+          before do
+            calls = 0
+            allow(storage_transfer_service).to receive(:list_transfer_operations) do
+              calls += 1
+              if calls < 3
+                double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})])
+              elsif calls == 3
+                raise Google::Apis::ServerError, 'Bork!'
+              else
+                double(operations: [double(done?: true, metadata: {'status' => 'SUCCESS'})])
+              end
+            end
+          end
+
+          it 'retries the operation' do
+            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+            expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(4).times
+            expect(thread).to have_received(:sleep).with(13).exactly(3).times
+          end
+
+          it 'logs the error' do
+            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+            expect(logger).to have_received(:debug).with('Error while waiting for job "my_job", will retry: "Bork!" (Google::Apis::ServerError)')
+          end
+
+          it 'raises an error after five retries' do
+            allow(storage_transfer_service).to receive(:list_transfer_operations).and_raise(Google::Apis::ServerError, 'Bork!')
+            expect { transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket') }.to raise_error('Transfer failed: "Bork!" (Google::Apis::ServerError)')
+            expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(5).times
+          end
+        end
       end
     end
   end
