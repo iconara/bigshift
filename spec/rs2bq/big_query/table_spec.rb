@@ -18,7 +18,11 @@ module RS2BQ
       end
 
       let :load_job do
-        double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', error_result: nil))
+        double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', error_result: nil), statistics: double(load: statistics))
+      end
+
+      let :statistics do
+        double(:statistics, input_file_bytes: '23618287', input_files: '20', output_bytes: '24870344', output_rows: '41470')
       end
 
       let :logger do
@@ -122,7 +126,7 @@ module RS2BQ
         context 'submits the load job and' do
           def create_job(job_id, status)
             s = status.nil? ? nil : double(state: status, error_result: nil)
-            double(:load_job, job_reference: double(job_id: job_id), status: s)
+            double(:load_job, job_reference: double(job_id: job_id), status: s, statistics: double(load: statistics))
           end
 
           it 'looks up the job' do
@@ -146,9 +150,9 @@ module RS2BQ
             expect(thread).to have_received(:sleep).with(13).exactly(3).times
           end
 
-          it 'logs when the job is done' do
+          it 'logs statistics when the job is done' do
             table.load('my_uri')
-            expect(logger).to have_received(:info).with('Loading complete')
+            expect(logger).to have_received(:info).with('Loading complete, 0.02 GiB loaded from 20 files, 41470 rows created, table size 0.02 GiB')
           end
 
           it 'logs the status when the job is not done' do

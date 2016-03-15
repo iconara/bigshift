@@ -236,7 +236,7 @@ module RS2BQ
 
           it 'logs statistics about the job when it completes' do
             transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
-            expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.6 GiB copied')
+            expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.65 GiB copied')
           end
         end
 

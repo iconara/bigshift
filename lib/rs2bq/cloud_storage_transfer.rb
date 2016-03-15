@@ -95,7 +95,7 @@ module RS2BQ
         message = sprintf('Transfer %s complete', transfer_job.description)
         if (counters = operation.metadata['counters'])
           size_in_gib = counters['bytesCopiedToSink'].to_f / 2**30
-          message << sprintf(', %s objects and %.1f GiB copied', counters['objectsCopiedToSink'], size_in_gib)
+          message << sprintf(', %s objects and %.2f GiB copied', counters['objectsCopiedToSink'], size_in_gib)
         end
         @logger.info(message)
       end

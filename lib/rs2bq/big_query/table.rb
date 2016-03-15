@@ -40,13 +40,20 @@ module RS2BQ
             @thread.sleep(poll_interval)
           end
         end
-        @logger.info('Loading complete')
+        report_complete(job)
         nil
       end
 
       private
 
       DEFAULT_POLL_INTERVAL = 30
+
+      def report_complete(job)
+        statistics = job.statistics.load
+        input_size = statistics.input_file_bytes.to_f/2**30
+        output_size = statistics.output_bytes.to_f/2**30
+        @logger.info(sprintf('Loading complete, %.2f GiB loaded from %s files, %s rows created, table size %.2f GiB', input_size, statistics.input_files, statistics.output_rows, output_size))
+      end
     end
   end
 end
