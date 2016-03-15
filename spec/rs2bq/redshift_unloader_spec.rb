@@ -8,6 +8,10 @@ module RS2BQ
       double(:redshift_connection)
     end
 
+    let :logger do
+      double(:logger, debug: nil, info: nil, warn: nil)
+    end
+
     let :aws_credentials do
       {
         'aws_access_key_id' => 'foo',
@@ -16,7 +20,9 @@ module RS2BQ
     end
 
     let :options do
-      {}
+      {
+        :logger => logger
+      }
     end
 
     let :column_rows do
@@ -71,6 +77,10 @@ module RS2BQ
 
       it 'does not allow overwrites of the destination' do
         expect(unload_command).not_to include(%q<ALLOWOVERWRITE>)
+      end
+
+      it 'logs that it unloads' do
+        expect(logger).to have_received(:info).with('Unloading Redshift table my_table to s3://my-bucket/here/')
       end
 
       context 'when the :allow_overwrite option is true' do
