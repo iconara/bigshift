@@ -16,7 +16,6 @@ module RS2BQ
       unload_sql << %Q< TO '#{s3_uri}'>
       unload_sql << %Q< CREDENTIALS '#{credentials}'>
       unload_sql << %q< DELIMITER '\t'>
-      unload_sql << %q< ADDQUOTES>
       unload_sql << %q< ESCAPE>
       unload_sql << %q< ALLOWOVERWRITE> if options[:allow_overwrite]
       @logger.info(sprintf('Unloading Redshift table %s to %s', table_name, s3_uri))
