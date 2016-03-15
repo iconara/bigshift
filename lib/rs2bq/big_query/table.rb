@@ -35,7 +35,8 @@ module RS2BQ
               break
             end
           else
-            @logger.debug(sprintf('Waiting for job "%s" (status: %s)', job.job_reference.job_id, job.status && job.status.state || 'unknown'))
+            state = job.status && job.status.state
+            @logger.debug(sprintf('Waiting for job %s (status: %s)', job.job_reference.job_id.inspect, state ? state.inspect : 'unknown'))
             @thread.sleep(poll_interval)
           end
         end

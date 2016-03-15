@@ -155,8 +155,8 @@ module RS2BQ
             )
             table.load('my_uri')
             expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: unknown)')
-            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: PENDING)')
-            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: IN_PROGRESS)')
+            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: "PENDING")')
+            expect(logger).to have_received(:debug).with('Waiting for job "my_job_id" (status: "IN_PROGRESS")')
           end
 
           context 'when the job fails' do
