@@ -21,6 +21,7 @@ module RS2BQ
 end
 
 require 'rs2bq/big_query/dataset'
+require 'rs2bq/big_query/table'
 require 'rs2bq/big_query_table_creator'
 require 'rs2bq/redshift_table_schema'
 require 'rs2bq/redshift_unloader'

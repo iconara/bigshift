@@ -20,7 +20,7 @@ module RS2BQ
 
       describe '#table' do
         it 'returns the specified table' do
-          expect(dataset.table('my_table')).to eq(table)
+          expect(dataset.table('my_table')).to be_a(Table)
         end
 
         context 'when the table does not exist' do
@@ -51,9 +51,16 @@ module RS2BQ
             table_reference = table.table_reference
           end
           dataset.create_table('my_table')
-          expect(table_reference.project_id).to eq('my_project')
-          expect(table_reference.dataset_id).to eq('my_dataset')
-          expect(table_reference.table_id).to eq('my_table')
+          aggregate_failures do
+            expect(table_reference.project_id).to eq('my_project')
+            expect(table_reference.dataset_id).to eq('my_dataset')
+            expect(table_reference.table_id).to eq('my_table')
+          end
+        end
+
+        it 'returns a Table' do
+          table = dataset.create_table('my_table')
+          expect(table).to be_a(Table)
         end
 
         it 'creates the table in the specified project and dataset' do

@@ -1,14 +1,16 @@
 module RS2BQ
   module BigQuery
     class Dataset
-      def initialize(big_query_service, project_id, dataset_id)
+      def initialize(big_query_service, project_id, dataset_id, options={})
         @big_query_service = big_query_service
         @project_id = project_id
         @dataset_id = dataset_id
+        @logger = options[:logger] || NullLogger::INSTANCE
       end
 
       def table(table_name)
-        @big_query_service.get_table(@project_id, @dataset_id, table_name)
+        table_data = @big_query_service.get_table(@project_id, @dataset_id, table_name)
+        Table.new(@big_query_service, table_data, logger: @logger)
       rescue Google::Apis::ClientError => e
         if e.status_code == 404
           nil
@@ -30,9 +32,9 @@ module RS2BQ
         table_spec = {}
         table_spec[:table_reference] = table_reference
         table_spec[:schema] = schema if schema
-        table = Google::Apis::BigqueryV2::Table.new(table_spec)
-        @big_query_service.insert_table(@project_id, @dataset_id, table)
-        nil
+        table_data = Google::Apis::BigqueryV2::Table.new(table_spec)
+        table_data = @big_query_service.insert_table(@project_id, @dataset_id, table_data)
+        Table.new(@big_query_service, table_data, logger: @logger)
       end
     end
   end
