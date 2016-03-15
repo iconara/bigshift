@@ -11,7 +11,7 @@ module RS2BQ
 
     def copy_to_cloud_storage(s3_bucket, s3_path_prefix, cloud_storage_bucket, options={})
       poll_interval = options[:poll_interval] || 60
-      transfer_job = create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, options[:description])
+      transfer_job = create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, options[:description], options[:allow_overwrite])
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
       @logger.info(sprintf('Transferring objects from s3://%s/%s to gs://%s/%s', s3_bucket, s3_path_prefix, cloud_storage_bucket, s3_path_prefix))
       loop do
@@ -30,7 +30,7 @@ module RS2BQ
 
     private
 
-    def create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, description)
+    def create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, description, allow_overwrite)
       now = @clock.now
       Google::Apis::StoragetransferV1::TransferJob.new(
         description: description,
@@ -56,7 +56,7 @@ module RS2BQ
             include_prefixes: [s3_path_prefix]
           ),
           transfer_options: Google::Apis::StoragetransferV1::TransferOptions.new(
-            overwrite_objects_already_existing_in_sink: false
+            overwrite_objects_already_existing_in_sink: !!allow_overwrite
           )
         )
       )

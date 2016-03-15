@@ -58,7 +58,11 @@ module RS2BQ
     describe '#copy_to' do
       context 'creates a transfer job that' do
         before do
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket')
+          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', options)
+        end
+
+        let :options do
+          {}
         end
 
         it 'has the project ID set' do
@@ -104,7 +108,17 @@ module RS2BQ
         end
 
         it 'does not overwrite the destination' do
-          expect(created_jobs.first.transfer_spec.transfer_options.overwrite_objects_already_existing_in_sink).to be_falsy
+          expect(created_jobs.first.transfer_spec.transfer_options.overwrite_objects_already_existing_in_sink).to equal(false)
+        end
+
+        context 'when the :allow_overwrite option is true' do
+          let :options do
+            super().merge(allow_overwrite: true)
+          end
+
+          it 'allows overwriting files at the destination' do
+            expect(created_jobs.first.transfer_spec.transfer_options.overwrite_objects_already_existing_in_sink).to equal(true)
+          end
         end
       end
 
@@ -165,4 +179,3 @@ module RS2BQ
     end
   end
 end
-# 
