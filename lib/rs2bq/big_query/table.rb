@@ -30,10 +30,16 @@ module RS2BQ
         loop do
           job = @big_query_service.get_job(@table_data.table_reference.project_id, job.job_reference.job_id)
           if job.status && job.status.state == 'DONE'
-            if job.status.error_result
-              raise job.status.error_result.message
-            else
+            if job.status.errors.nil? || job.status.errors.empty?
               break
+            else
+              job.status.errors.each do |error|
+                file, line, field = error.location.split('/').map { |s| s.split(':').last.strip }
+                message = %<Load error: "#{error.message}" at file #{file}, line #{line}>
+                message << ", field #{field}" if field
+                @logger.debug(message)
+              end
+              raise job.status.error_result.message
             end
           else
             state = job.status && job.status.state

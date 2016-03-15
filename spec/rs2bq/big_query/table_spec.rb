@@ -18,7 +18,7 @@ module RS2BQ
       end
 
       let :load_job do
-        double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', error_result: nil), statistics: double(load: statistics))
+        double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', errors: []), statistics: double(load: statistics))
       end
 
       let :statistics do
@@ -125,7 +125,7 @@ module RS2BQ
 
         context 'submits the load job and' do
           def create_job(job_id, status)
-            s = status.nil? ? nil : double(state: status, error_result: nil)
+            s = status.nil? ? nil : double(state: status, errors: nil)
             double(:load_job, job_reference: double(job_id: job_id), status: s, statistics: double(load: statistics))
           end
 
@@ -184,11 +184,28 @@ module RS2BQ
 
           context 'when the job fails' do
             let :load_job do
-              double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', error_result: double(message: 'Bork snork!')))
+              double(:load_job, job_reference: double(job_id: 'my_job_id'), status: double(state: 'DONE', errors: errors, error_result: errors.first))
+            end
+
+            let :errors do
+              [
+                double(message: 'Bad thing', reason: 'invalid', location: 'File: 0 / Line:5 / Field:18'),
+                double(message: 'Not correct', reason: 'invalid', location: 'File: 1 / Line:6'),
+                double(message: 'Do better', reason: 'invalid', location: 'File: 2 / Line:7 / Field:20'),
+              ]
             end
 
             it 'raises an error' do
-              expect { table.load('my_uri') }.to raise_error(/Bork snork!/)
+              expect { table.load('my_uri') }.to raise_error(/Bad thing/)
+            end
+
+            it 'logs the errors' do
+              table.load('my_uri') rescue nil
+              aggregate_failures do
+                expect(logger).to have_received(:debug).with('Load error: "Bad thing" at file 0, line 5, field 18')
+                expect(logger).to have_received(:debug).with('Load error: "Not correct" at file 1, line 6')
+                expect(logger).to have_received(:debug).with('Load error: "Do better" at file 2, line 7, field 20')
+              end
             end
           end
         end
