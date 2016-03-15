@@ -31,7 +31,7 @@ module RS2BQ
     private
 
     def create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, description, allow_overwrite)
-      now = @clock.now
+      now = @clock.now.utc
       Google::Apis::StoragetransferV1::TransferJob.new(
         description: description,
         project_id: @project_id,

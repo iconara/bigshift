@@ -41,6 +41,10 @@ module RS2BQ
       ]
     end
 
+    let :now do
+      Time.utc(2016, 3, 11, 19, 2, 0)
+    end
+
     before do
       allow(storage_transfer_service).to receive(:create_transfer_job) do |j|
         created_jobs << j
@@ -52,7 +56,7 @@ module RS2BQ
     end
 
     before do
-      allow(clock).to receive(:now).and_return(double(:now, year: 2016, month: 3, day: 11, hour: 19, min: 2))
+      allow(clock).to receive(:now).and_return(now)
     end
 
     describe '#copy_to' do
@@ -84,6 +88,26 @@ module RS2BQ
             expect(schedule.schedule_end_date.day).to eq(11)
             expect(schedule.start_time_of_day.hours).to eq(19)
             expect(schedule.start_time_of_day.minutes).to eq(2)
+          end
+        end
+
+        context 'when the client does not use UTC' do
+          let :now do
+            Time.new(2016, 3, 11, 19, 2, 0, '-04:30')
+          end
+
+          it 'converts the time to UTC' do
+            schedule = created_jobs.first.schedule
+            aggregate_failures do
+              expect(schedule.schedule_start_date.year).to eq(2016)
+              expect(schedule.schedule_start_date.month).to eq(3)
+              expect(schedule.schedule_start_date.day).to eq(11)
+              expect(schedule.schedule_end_date.year).to eq(2016)
+              expect(schedule.schedule_end_date.month).to eq(3)
+              expect(schedule.schedule_end_date.day).to eq(11)
+              expect(schedule.start_time_of_day.hours).to eq(23)
+              expect(schedule.start_time_of_day.minutes).to eq(32)
+            end
           end
         end
 
