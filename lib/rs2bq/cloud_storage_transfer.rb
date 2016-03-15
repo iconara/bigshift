@@ -29,7 +29,7 @@ module RS2BQ
         schedule: Google::Apis::StoragetransferV1::Schedule.new(
           schedule_start_date: Google::Apis::StoragetransferV1::Date.new(year: now.year, month: now.month, day: now.day),
           schedule_end_date: Google::Apis::StoragetransferV1::Date.new(year: now.year, month: now.month, day: now.day),
-          start_time_of_day: Google::Apis::StoragetransferV1::TimeOfDay.new(hours: now.hour, minutes: now.min)
+          start_time_of_day: Google::Apis::StoragetransferV1::TimeOfDay.new(hours: now.hour, minutes: now.min + 1)
         ),
         transfer_spec: Google::Apis::StoragetransferV1::TransferSpec.new(
           aws_s3_data_source: Google::Apis::StoragetransferV1::AwsS3Data.new(

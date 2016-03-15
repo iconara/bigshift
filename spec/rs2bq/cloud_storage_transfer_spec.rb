@@ -75,7 +75,7 @@ module RS2BQ
           expect(created_jobs.first.status).to eq('ENABLED')
         end
 
-        it 'is scheduled to start immediately' do
+        it 'is scheduled to start as soon as possible, with some margin of error' do
           schedule = created_jobs.first.schedule
           aggregate_failures do
             expect(schedule.schedule_start_date.year).to eq(2016)
@@ -85,7 +85,7 @@ module RS2BQ
             expect(schedule.schedule_end_date.month).to eq(3)
             expect(schedule.schedule_end_date.day).to eq(11)
             expect(schedule.start_time_of_day.hours).to eq(19)
-            expect(schedule.start_time_of_day.minutes).to eq(2)
+            expect(schedule.start_time_of_day.minutes).to eq(3)
           end
         end
 
@@ -104,7 +104,7 @@ module RS2BQ
               expect(schedule.schedule_end_date.month).to eq(3)
               expect(schedule.schedule_end_date.day).to eq(11)
               expect(schedule.start_time_of_day.hours).to eq(23)
-              expect(schedule.start_time_of_day.minutes).to eq(32)
+              expect(schedule.start_time_of_day.minutes).to eq(33)
             end
           end
         end
