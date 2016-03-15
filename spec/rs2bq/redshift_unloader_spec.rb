@@ -44,11 +44,15 @@ module RS2BQ
         ''
       end
 
+      let :unload_options do
+        {}
+      end
+
       before do
         allow(redshift_connection).to receive(:exec) do |sql|
           unload_command.replace(sql)
         end
-        unloader.unload_to('my_table', 's3://my-bucket/here/')
+        unloader.unload_to('my_table', 's3://my-bucket/here/', unload_options)
       end
 
       it 'executes an UNLOAD command' do
@@ -84,7 +88,7 @@ module RS2BQ
       end
 
       context 'when the :allow_overwrite option is true' do
-        let :options do
+        let :unload_options do
           super().merge(allow_overwrite: true)
         end
 
