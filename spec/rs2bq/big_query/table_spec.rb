@@ -80,10 +80,10 @@ module RS2BQ
             expect(load_configuration.create_disposition).to eq('CREATE_IF_NEEDED')
           end
 
-          it 'is configured for CSV data' do
+          it 'is configured for TSV data' do
             aggregate_failures do
               expect(load_configuration.source_format).to eq('CSV')
-              expect(load_configuration.field_delimiter).to eq(',')
+              expect(load_configuration.field_delimiter).to eq('\t')
               expect(load_configuration.quote).to eq('"')
             end
           end

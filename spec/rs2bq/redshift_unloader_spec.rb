@@ -65,7 +65,7 @@ module RS2BQ
 
       it 'unloads CSV' do
         aggregate_failures do
-          expect(unload_command).to include(%q<DELIMITER ','>)
+          expect(unload_command).to include(%q<DELIMITER '\t'>)
           expect(unload_command).to include(%q<ADDQUOTES>)
           expect(unload_command).to include(%q<ESCAPE>)
         end
