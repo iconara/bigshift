@@ -9,7 +9,7 @@ module RS2BQ
       end
 
       def load(uri, options={})
-        poll_interval = options[:poll_interval] || 60
+        poll_interval = options[:poll_interval] || DEFAULT_POLL_INTERVAL
         load_configuration = {}
         load_configuration[:source_uris] = [uri]
         load_configuration[:write_disposition] = options[:allow_overwrite] ? 'WRITE_TRUNCATE' : 'WRITE_EMPTY'
@@ -43,6 +43,10 @@ module RS2BQ
         @logger.info('Loading complete')
         nil
       end
+
+      private
+
+      DEFAULT_POLL_INTERVAL = 30
     end
   end
 end
