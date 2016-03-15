@@ -106,7 +106,7 @@ module RS2BQ
         end
 
         it 'includes the necessary SQL in the unload command' do
-          expect(unload_command).to include(%q<(CASE WHEN "alive" THEN 1 ELSE 0 END)>)
+          expect(unload_command).to include(%q<(CASE WHEN "alive" THEN \'true\' ELSE \'false\' END)>)
         end
       end
     end

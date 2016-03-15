@@ -12,6 +12,7 @@ module RS2BQ
       select_sql = 'SELECT '
       select_sql << table_schema.columns.map(&:to_sql).join(', ')
       select_sql << %Q< FROM "#{table_name}">
+      select_sql.gsub!('\'') { |s| '\\\'' }
       unload_sql = %Q<UNLOAD ('#{select_sql}')>
       unload_sql << %Q< TO '#{s3_uri}'>
       unload_sql << %Q< CREDENTIALS '#{credentials}'>
