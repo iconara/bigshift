@@ -8,15 +8,23 @@ module RS2BQ
     def columns
       @columns ||= begin
         rows = @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = 'public' AND "tablename" = $1|, [@table_name])
-        columns = rows.map do |row|
-          name = row['column']
-          type = row['type']
-          nullable = row['notnull'] == 'f'
-          Column.new(name, type, nullable)
+        if rows.count == 0
+          raise sprintf('Table not found: %s', @table_name.inspect)
+        else
+          columns = rows.map do |row|
+            name = row['column']
+            type = row['type']
+            nullable = row['notnull'] == 'f'
+            Column.new(name, type, nullable)
+          end
+          columns.sort_by!(&:name)
+          columns
         end
-        columns.sort_by!(&:name)
-        columns
       end
+    end
+
+    def to_big_query
+      Google::Apis::BigqueryV2::TableSchema.new(fields: columns.map(&:to_big_query))
     end
 
     class Column
@@ -32,12 +40,12 @@ module RS2BQ
         @nullable
       end
 
-      def to_big_query_field
-        {
-          'name' => @name,
-          'type' => big_query_type,
-          'mode' => @nullable ? 'NULLABLE' : 'REQUIRED'
-        }
+      def to_big_query
+        Google::Apis::BigqueryV2::TableFieldSchema.new(
+          name: @name,
+          type: big_query_type,
+          mode: @nullable ? 'NULLABLE' : 'REQUIRED'
+        )
       end
 
       private
