@@ -86,6 +86,10 @@ module RS2BQ
         expect(logger).to have_received(:info).with('Unloading Redshift table my_table to s3://my-bucket/here/')
       end
 
+      it 'logs when the unload is complete' do
+        expect(logger).to have_received(:info).with('Unload of my_table complete')
+      end
+
       context 'when the :allow_overwrite option is true' do
         let :unload_options do
           super().merge(allow_overwrite: true)

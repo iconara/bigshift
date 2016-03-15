@@ -20,6 +20,7 @@ module RS2BQ
       unload_sql << %q< ALLOWOVERWRITE> if options[:allow_overwrite]
       @logger.info(sprintf('Unloading Redshift table %s to %s', table_name, s3_uri))
       @redshift_connection.exec(unload_sql)
+      @logger.info(sprintf('Unload of %s complete', table_name))
     end
   end
 end
