@@ -99,14 +99,16 @@ module RS2BQ
             expect(types['id']).to eq('STRING')
           end
 
-          it 'converts a Redshift TIMESTAMP column' do
-            column_rows.first['type'] = 'timestamp without time zone'
-            expect(types['id']).to eq('STRING')
-          end
-
           it 'converts a Redshift DATE column' do
             column_rows.first['type'] = 'date'
             expect(types['id']).to eq('STRING')
+          end
+        end
+
+        context 'uses the BigQuery type TIMESTAMP when' do
+          it 'converts a Redshift TIMESTAMP column' do
+            column_rows.first['type'] = 'timestamp without time zone'
+            expect(types['id']).to eq('TIMESTAMP')
           end
         end
 
@@ -161,6 +163,62 @@ module RS2BQ
 
         it 'raises an error' do
           expect { described_class.new('another_table', redshift_connection).to_big_query }.to raise_error('Table not found: "another_table"')
+        end
+      end
+    end
+  end
+
+  describe RedshiftTableSchema::Column do
+    describe '#to_sql' do
+      let :column do
+        column = described_class.new(name, type, nullable)
+      end
+
+      let :name do
+        'the_column'
+      end
+
+      let :nullable do
+        false
+      end
+
+      context 'when the column type is BOOLEAN' do
+        let :type do
+          'boolean'
+        end
+
+        it 'returns SQL that converts the value to 1 or 0' do
+          expect(column.to_sql).to eq('(CASE WHEN "the_column" THEN 1 ELSE 0 END)')
+        end
+
+        context 'and the column is nullable' do
+          let :nullable do
+            true
+          end
+
+          it 'returns SQL that converts the value to 1, 0 or NULL' do
+            expect(column.to_sql).to eq('(CASE WHEN "the_column" IS NULL THEN NULL WHEN "the_column" THEN 1 ELSE 0 END)')
+          end
+        end
+      end
+
+      context 'when the column type is TIMESTAMP' do
+        let :type do
+          'timestamp without time zone'
+        end
+
+        it 'returns SQL that converts the timestamp to a UNIX timestamp with fractional seconds' do
+          expect(column.to_sql).to eq('(EXTRACT(epoch FROM "the_column") + EXTRACT(milliseconds FROM "the_column")/1000.0)')
+        end
+      end
+
+      context 'when the column type is DATE' do
+        let :type do
+          'date'
+        end
+
+        it 'returns SQL that converts the timestamp to a ISO 8601 formatted string' do
+          expect(column.to_sql).to eq('(TO_CHAR("the_column", \'YYYY-MM-DD\'))')
         end
       end
     end

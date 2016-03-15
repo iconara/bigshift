@@ -48,11 +48,30 @@ module RS2BQ
         )
       end
 
+      def to_sql
+        case @type
+        when /^character/, /^numeric/, /int/, /^double/, 'real' then @name
+        when /^timestamp/
+          sprintf('(EXTRACT(epoch FROM "%s") + EXTRACT(milliseconds FROM "%s")/1000.0)', @name, @name)
+        when 'date'
+          sprintf('(TO_CHAR("%s", \'YYYY-MM-DD\'))', @name)
+        when 'boolean'
+          if nullable?
+            sprintf('(CASE WHEN "%s" IS NULL THEN NULL WHEN "%s" THEN 1 ELSE 0 END)', @name, @name)
+          else
+            sprintf('(CASE WHEN "%s" THEN 1 ELSE 0 END)', @name)
+          end
+        else
+          raise sprintf('Unsupported column type: %s', type.inspect)
+        end
+      end
+
       private
 
       def big_query_type
         case @type
-        when /^character/, /^numeric/, 'date', /^timestamp/ then 'STRING'
+        when /^character/, /^numeric/, 'date' then 'STRING'
+        when /^timestamp/ then 'TIMESTAMP'
         when /int/ then 'INTEGER'
         when 'boolean' then 'BOOLEAN'
         when /^double/, 'real' then 'FLOAT'

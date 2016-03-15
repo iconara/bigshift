@@ -82,6 +82,16 @@ module RS2BQ
           expect(unload_command).to include(%q<ALLOWOVERWRITE>)
         end
       end
+
+      context 'when Redshift datatypes need to be converted' do
+        let :column_rows do
+          super() << {'column' => 'alive', 'type' => 'boolean', 'notnull' => 't'}
+        end
+
+        it 'includes the necessary SQL in the unload command' do
+          expect(unload_command).to include(%q<(CASE WHEN "alive" THEN 1 ELSE 0 END)>)
+        end
+      end
     end
   end
 end
