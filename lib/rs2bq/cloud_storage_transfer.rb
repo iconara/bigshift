@@ -14,24 +14,7 @@ module RS2BQ
       transfer_job = create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, options[:description], options[:allow_overwrite])
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
       @logger.info(sprintf('Transferring objects from s3://%s/%s to gs://%s/%s', s3_bucket, s3_path_prefix, cloud_storage_bucket, s3_path_prefix))
-      started = false
-      loop do
-        operations_response = @storage_transfer_service.list_transfer_operations('transferOperations', filter: JSON.dump({project_id: @project_id, job_names: [transfer_job.name]}))
-        operation = operations_response.operations && operations_response.operations.first
-        if operation && operation.done?
-          @logger.info('Transfer complete')
-          break
-        else
-          status = operation && operation.metadata && operation.metadata['status'] || 'unknown'
-          if status == 'IN_PROGRESS' && !started
-            @logger.info('Transfer started')
-            started = true
-          else
-            @logger.debug(sprintf('Waiting for job "%s" (status: %s)', transfer_job.description, status))
-          end
-          @thread.sleep(poll_interval)
-        end
-      end
+      await_completion(transfer_job, poll_interval)
       nil
     end
 
@@ -67,6 +50,27 @@ module RS2BQ
           )
         )
       )
+    end
+
+    def await_completion(transfer_job, poll_interval)
+      started = false
+      loop do
+        operations_response = @storage_transfer_service.list_transfer_operations('transferOperations', filter: JSON.dump({project_id: @project_id, job_names: [transfer_job.name]}))
+        operation = operations_response.operations && operations_response.operations.first
+        if operation && operation.done?
+          @logger.info(sprintf('Transfer %s complete', transfer_job.description))
+          break
+        else
+          status = operation && operation.metadata && operation.metadata['status']
+          if status == 'IN_PROGRESS' && !started
+            @logger.info(sprintf('Transfer %s started', transfer_job.description))
+            started = true
+          else
+            @logger.debug(sprintf('Waiting for job %s (name: %s, status: %s)', transfer_job.description.inspect, transfer_job.name.inspect, status ? status.inspect : 'unknown'))
+          end
+          @thread.sleep(poll_interval)
+        end
+      end
     end
   end
 end

@@ -201,16 +201,16 @@ module RS2BQ
           end
 
           it 'logs the status when the job is not done' do
-            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: unknown)').exactly(3).times
-            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (status: IN_PROGRESS)').at_least(:once)
+            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (name: "my_job", status: unknown)').exactly(3).times
+            expect(logger).to have_received(:debug).with('Waiting for job "foobar" (name: "my_job", status: "IN_PROGRESS")').at_least(:once)
           end
 
           it 'logs the status when the job gets an in-progress status' do
-            expect(logger).to have_received(:info).with('Transfer started')
+            expect(logger).to have_received(:info).with('Transfer foobar started')
           end
 
           it 'logs when the job is done' do
-            expect(logger).to have_received(:info).with('Transfer complete')
+            expect(logger).to have_received(:info).with('Transfer foobar complete')
           end
         end
       end
