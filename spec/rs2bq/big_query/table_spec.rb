@@ -146,6 +146,11 @@ module RS2BQ
             expect(thread).to have_received(:sleep).with(13).exactly(3).times
           end
 
+          it 'logs when the job is done' do
+            table.load('my_uri')
+            expect(logger).to have_received(:info).with('Loading complete')
+          end
+
           it 'logs the status when the job is not done' do
             allow(big_query_service).to receive(:get_job).and_return(
               create_job('my_job_id', nil),

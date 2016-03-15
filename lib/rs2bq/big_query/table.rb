@@ -40,6 +40,8 @@ module RS2BQ
             @thread.sleep(poll_interval)
           end
         end
+        @logger.info('Loading complete')
+        nil
       end
     end
   end
