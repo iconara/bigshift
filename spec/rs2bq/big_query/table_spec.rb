@@ -88,6 +88,16 @@ module RS2BQ
             end
           end
 
+          context 'when the :allow_overwrite option is true' do
+            let :options do
+              super().merge(allow_overwrite: true)
+            end
+
+            it 'truncates the destination table' do
+              expect(load_configuration.write_disposition).to eq('WRITE_TRUNCATE')
+            end
+          end
+
           context 'when the :schema option is specified' do
             let :options do
               super().merge(schema: schema)

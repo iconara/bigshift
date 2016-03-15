@@ -12,7 +12,7 @@ module RS2BQ
         poll_interval = options[:poll_interval] || 60
         load_configuration = {}
         load_configuration[:source_uris] = [uri]
-        load_configuration[:write_disposition] = 'WRITE_EMPTY'
+        load_configuration[:write_disposition] = options[:allow_overwrite] ? 'WRITE_TRUNCATE' : 'WRITE_EMPTY'
         load_configuration[:create_disposition] = 'CREATE_IF_NEEDED'
         load_configuration[:schema] = options[:schema] if options[:schema]
         load_configuration[:source_format] = 'CSV'
