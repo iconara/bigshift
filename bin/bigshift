@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require 'bigshift/cli'
+
+begin
+  BigShift::Cli.new(ARGV).run
+rescue BigShift::CliError => e
+  $stderr.puts("#{e.message}:")
+  $stderr.puts
+  e.details.each do |detail|
+    $stderr.puts("* #{detail}")
+  end
+  $stderr.puts
+  $stderr.puts(e.usage)
+  $stderr.puts
+  exit(1)
+end
+

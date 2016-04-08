@@ -2,6 +2,8 @@ require 'google/apis/bigquery_v2'
 require 'google/apis/storagetransfer_v1'
 
 module BigShift
+  BigShiftError = Class.new(StandardError)
+
   class NullLogger
     def close(*); end
     def debug(*); end
