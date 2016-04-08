@@ -33,9 +33,12 @@ module RS2BQ
               break
             else
               job.status.errors.each do |error|
-                file, line, field = error.location.split('/').map { |s| s.split(':').last.strip }
-                message = %<Load error: "#{error.message}" at file #{file}, line #{line}>
-                message << ", field #{field}" if field
+                message = %<Load error: "#{error.message}">
+                if error.location
+                  file, line, field = error.location.split('/').map { |s| s.split(':').last.strip }
+                  message << " at file #{file}, line #{line}"
+                  message << ", field #{field}" if field
+                end
                 @logger.debug(message)
               end
               raise job.status.error_result.message

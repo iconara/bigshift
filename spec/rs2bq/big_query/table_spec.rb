@@ -207,6 +207,19 @@ module RS2BQ
                 expect(logger).to have_received(:debug).with('Load error: "Do better" at file 2, line 7, field 20')
               end
             end
+
+            context 'and the error does not have a location' do
+              let :errors do
+                [
+                  double(message: 'Bad thing', reason: 'invalid', location: nil),
+                ]
+              end
+
+              it 'logs the error without location' do
+                table.load('my_uri') rescue nil
+                expect(logger).to have_received(:debug).with('Load error: "Bad thing"')
+              end
+            end
           end
         end
       end
