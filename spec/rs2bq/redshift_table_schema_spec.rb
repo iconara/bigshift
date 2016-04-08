@@ -190,6 +190,23 @@ module RS2BQ
         expect(column.to_sql).to eq('"the_column"')
       end
 
+      context 'when the column type is CHAR or VARCHAR' do
+        let :type do
+          'character varying(100)'
+        end
+
+        it 'quotes the field in double quotes' do
+          aggregate_failures do
+            expect(column.to_sql).to start_with(%q<('"' ||>)
+            expect(column.to_sql).to end_with(%q<|| '"')>)
+          end
+        end
+
+        it 'replaces double quotes with two double quotes, as per the CSV spec' do
+          expect(column.to_sql).to include('REPLACE("the_column", \'"\', \'""\')')
+        end
+      end
+
       context 'when the column type is BOOLEAN' do
         let :type do
           'boolean'

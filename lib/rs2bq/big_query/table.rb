@@ -17,6 +17,7 @@ module RS2BQ
         load_configuration[:schema] = options[:schema] if options[:schema]
         load_configuration[:source_format] = 'CSV'
         load_configuration[:field_delimiter] = '\t'
+        load_configuration[:quote] = '"'
         load_configuration[:destination_table] = @table_data.table_reference
         job = Google::Apis::BigqueryV2::Job.new(
           configuration: Google::Apis::BigqueryV2::JobConfiguration.new(

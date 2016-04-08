@@ -63,11 +63,8 @@ module RS2BQ
         expect(unload_command).to include(%q<TO 's3://my-bucket/here/'>)
       end
 
-      it 'unloads CSV' do
-        aggregate_failures do
-          expect(unload_command).to include(%q<DELIMITER '\t'>)
-          expect(unload_command).to include(%q<ESCAPE>)
-        end
+      it 'unloads TSV' do
+        expect(unload_command).to include(%q<DELIMITER '\t'>)
       end
 
       it 'adds the provided credentials to the unload command' do
@@ -75,7 +72,13 @@ module RS2BQ
       end
 
       it 'explicitly selects all columns from the table' do
-        expect(unload_command).to include(%q<('SELECT "fax_number", "id", "name", "year_of_birth" FROM "my_table"')>)
+        select_list = unload_command[/SELECT (.+) FROM "my_table"/, 1]
+        aggregate_failures do
+          expect(select_list).to include('"fax_number"')
+          expect(select_list).to include('"id"')
+          expect(select_list).to include('"name"')
+          expect(select_list).to include('"year_of_birth"')
+        end
       end
 
       it 'does not allow overwrites of the destination' do
@@ -106,7 +109,7 @@ module RS2BQ
         end
 
         it 'includes the necessary SQL in the unload command' do
-          expect(unload_command).to include(%q<(CASE WHEN "alive" THEN \'true\' ELSE \'false\' END)>)
+          expect(unload_command).to include(%q<(CASE WHEN "alive" THEN 1 ELSE 0 END)>)
         end
       end
     end

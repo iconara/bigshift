@@ -50,12 +50,14 @@ module RS2BQ
 
       def to_sql
         case @type
-        when /^character/, /^numeric/, /int/, /^double/, 'real'
+        when /^numeric/, /int/, /^double/, 'real'
           sprintf('"%s"', @name)
+        when /^character/
+          sprintf(%q<('"' || REPLACE("%s", '"', '""') || '"')>, @name)
         when /^timestamp/
           sprintf('(EXTRACT(epoch FROM "%s") + EXTRACT(milliseconds FROM "%s")/1000.0)', @name, @name)
         when 'date'
-          sprintf('(TO_CHAR("%s", \'YYYY-MM-DD\'))', @name)
+          sprintf(%q<(TO_CHAR("%s", 'YYYY-MM-DD'))>, @name)
         when 'boolean'
           if nullable?
             sprintf('(CASE WHEN "%s" IS NULL THEN NULL WHEN "%s" THEN 1 ELSE 0 END)', @name, @name)
