@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   module BigQuery
     describe Table do
       let :table do

@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   class RedshiftTableSchema
     def initialize(table_name, redshift_connection)
       @table_name = table_name

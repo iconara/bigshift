@@ -1,1 +1,1 @@
-require 'rs2bq'
+require 'bigshift'

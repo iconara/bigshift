@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   describe CloudStorageTransfer do
     let :transfer do
       described_class.new(storage_transfer_service, 'my_project', aws_credentials, clock: clock, thread: thread, logger: logger)

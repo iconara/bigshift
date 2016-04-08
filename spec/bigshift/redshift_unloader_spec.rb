@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   describe RedshiftUnloader do
     let :unloader do
       described_class.new(redshift_connection, aws_credentials, options)

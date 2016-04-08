@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   module BigQuery
     class Table
       def initialize(big_query_service, table_data, options={})

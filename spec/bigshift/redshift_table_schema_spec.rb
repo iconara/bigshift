@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   describe RedshiftTableSchema do
     let :table_schema do
       described_class.new('some_table', redshift_connection)

@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   module BigQuery
     class Dataset
       def initialize(big_query_service, project_id, dataset_id, options={})

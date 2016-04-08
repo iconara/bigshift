@@ -1,7 +1,7 @@
 require 'google/apis/bigquery_v2'
 require 'google/apis/storagetransfer_v1'
 
-module RS2BQ
+module BigShift
   class NullLogger
     def close(*); end
     def debug(*); end
@@ -20,8 +20,8 @@ module RS2BQ
   end
 end
 
-require 'rs2bq/big_query/dataset'
-require 'rs2bq/big_query/table'
-require 'rs2bq/redshift_table_schema'
-require 'rs2bq/redshift_unloader'
-require 'rs2bq/cloud_storage_transfer'
+require 'bigshift/big_query/dataset'
+require 'bigshift/big_query/table'
+require 'bigshift/redshift_table_schema'
+require 'bigshift/redshift_unloader'
+require 'bigshift/cloud_storage_transfer'

@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   class CloudStorageTransfer
     def initialize(storage_transfer_service, project_id, aws_credentials, options={})
       @storage_transfer_service = storage_transfer_service

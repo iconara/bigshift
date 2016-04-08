@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   class RedshiftUnloader
     def initialize(redshift_connection, aws_credentials, options={})
       @redshift_connection = redshift_connection

@@ -1,4 +1,4 @@
-module RS2BQ
+module BigShift
   module BigQuery
     describe Dataset do
       let :dataset do
