@@ -8,6 +8,10 @@ BigShift is a tool for moving tables from Redshift to BigQuery. It will create a
 $ gem install bigshift
 ```
 
+# Requirements
+
+On the AWS side you need a Redshift cluster and an S3 bucket, and credentials that let you read from Redshift, and read and write to the S3 bucket (it doesn't have to be to the whole bucket, a prefix works fine). On the GCP side you need a Cloud Storage bucket, a BigQuery dataset and credentials that allows reading and writing to the bucket, and create BigQuery tables.
+
 # Usage
 
 The main interface to BigShift is the `bigshift` command line tool.
@@ -77,6 +81,20 @@ Once the data is in GCS, the BigQuery table can be created and loaded. At this p
 * The tool will happily overwrite any data on S3, GCS and in BigQuery that happen to be in the way (i.e. in the specified S3 or GCS location, or in the target table). This is convenient if you want to move the same data multiple times, but very scary and unsafe. To clobber everything will be an option in the future, but the default will be much safer.
 * There is no transformation or processing of the data. When moving to BigQuery you might want to split a string and use the pieces as values in a repeated field, but BigShift doesn't help you with that. You will almost always have to do some post processing in BigQuery once the data has been moved. Processing on the way would require a lot more complexity and involve either Hadoop or Dataflow, and that's beyond the scope of a tool like this.
 * BigShift can't move data back from BigQuery to Redshift. It can probably be done, but you would probably have to write a big part of the Redshift schema yourself since BigQuery's data model is so much simpler. Going from Redshift to BigQuery is simple, most of Redshifts datatypes map directly to one of BigQuery's, and there's no encodings, sort or dist keys to worry about. Going in the other direction the tool can't know whether or not a `STRING` column in BigQuery should be a `CHAR(12)` or `VARCHAR(65535)`, and if it should be encoded as `LZO` or `BYTEDICT` or what should be the primary, sort, and dist key of the table.
+
+# Troubleshooting
+
+### I get SSL errors
+
+The certificates used by the Google APIs might not be installed on your system, try this as a workaround:
+
+```
+export SSL_CERT_FILE="$(find $GEM_HOME/gems -name 'google-api-client-*' | tail -n 1)/lib/cacerts.pem"
+```
+
+### I get errors when the data is loaded into BigQuery
+
+This could be anything, but it could be things that aren't escaped properly when the data is dumped from Redshift. Try figuring out from the errors where the problem is and what the data looks like and open an issue. The more you can figure out yourself the more likely it is that you will get help. No one wants to trawl through your data, make an effort.
 
 # Copyright
 
