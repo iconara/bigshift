@@ -203,7 +203,14 @@ module BigShift
         end
 
         it 'replaces double quotes with two double quotes, as per the CSV spec' do
-          expect(column.to_sql).to include('REPLACE("the_column", \'"\', \'""\')')
+          expect(column.to_sql).to match(/REPLACE(.+, '"', '""')/)
+        end
+
+        it 'escapes newlines and carriage returns' do
+          aggregate_failures do
+            expect(column.to_sql).to match(/REPLACE(.+, '\\n', '\\\\n')/)
+            expect(column.to_sql).to match(/REPLACE(.+, '\\r', '\\\\r')/)
+          end
         end
       end
 
