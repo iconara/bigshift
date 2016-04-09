@@ -36,16 +36,28 @@ module BigShift
       double(:big_query_table_schema)
     end
 
-    let :gcs_credentials do
-      {}
+    let :gcp_credentials do
+      {
+        'type' => 'service_account',
+        'project_id' => 'polished-carrot-1234567',
+        'private_key_id' => '67ef3daf89debadc47f00d098fe8db42',
+      }.freeze
     end
 
     let :aws_credentials do
-      {}
+      {
+        'aws_access_key_id' => 'AKXYZABC123FOOBARBAZ',
+        'aws_secret_access_key' => 'eW91ZmlndXJlZG91dGl0d2FzYmFzZTY0ISEhCg',
+      }.freeze
     end
 
     let :rs_credentials do
-      {}
+      {
+        'host' => 'my-cluster.abc123.eu-west-1.redshift.amazonaws.com',
+        'port' => 5439,
+        'username' => 'my_redshift_user',
+        'password' => 'dGhpc2lzYWxzb2Jhc2U2NAo',
+      }.freeze
     end
 
     let :argv do
@@ -63,7 +75,7 @@ module BigShift
     end
 
     def write_config
-      File.write('gcp-credentials.yml', JSON.dump(gcs_credentials))
+      File.write('gcp-credentials.yml', JSON.dump(gcp_credentials))
       File.write('aws-credentials.yml', JSON.dump(aws_credentials))
       File.write('rs-credentials.yml', JSON.dump(rs_credentials))
     end
@@ -127,9 +139,37 @@ module BigShift
 
       it 'deletes the transferred data on Cloud Storage'
 
+      it 'creates the necessary components using the specified config parameters' do
+        cli.run
+        expect(factory_factory).to have_received(:call).with(hash_including(
+          :s3_bucket_name => 'the-s3-staging-bucket',
+          :rs_database_name => 'the_rs_database',
+          :rs_table_name => 'the_rs_table',
+          :cs_bucket_name => 'the-cs-bucket',
+          :bq_dataset_id => 'the_bq_dataset',
+          :bq_table_id => 'the_bq_table',
+        ))
+      end
+
+      it 'reads the specified AWS configuration' do
+        cli.run
+        expect(factory_factory).to have_received(:call).with(hash_including(
+          :gcp_credentials => gcp_credentials,
+          :aws_credentials => aws_credentials,
+          :rs_credentials => rs_credentials,
+        ))
+      end
+
       context 'with an S3 prefix' do
         let :argv do
           super() + ['--s3-prefix', 'and/the/prefix']
+        end
+
+        it 'includes the prefix in the config' do
+          cli.run
+          expect(factory_factory).to have_received(:call).with(hash_including(
+            :s3_prefix => 'and/the/prefix',
+          ))
         end
 
         it 'unloads to a location on S3 under the specified prefix' do
