@@ -131,7 +131,7 @@ module BigShift
     end
 
     def cloud_storage_transfer
-      @cloud_storage_transfer ||= CloudStorageTransfer.new(gcs_transfer_service, raw_gcp_credentials['project_id'], aws_credentials, logger: logger)
+      @cloud_storage_transfer ||= CloudStorageTransfer.new(cs_transfer_service, raw_gcp_credentials['project_id'], aws_credentials, logger: logger)
     end
 
     def redshift_table_schema
@@ -168,8 +168,8 @@ module BigShift
       )
     end
 
-    def gcs_transfer_service
-      @gcs_transfer_service ||= begin
+    def cs_transfer_service
+      @cs_transfer_service ||= begin
         s = Google::Apis::StoragetransferV1::StoragetransferService.new
         s.authorization = gcp_credentials
         s
