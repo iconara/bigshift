@@ -32,6 +32,10 @@ module BigShift
       double(:big_query_table)
     end
 
+    let :cleaner do
+      double(:cleaner)
+    end
+
     let :big_query_table_schema do
       double(:big_query_table_schema)
     end
@@ -97,12 +101,14 @@ module BigShift
       allow(factory).to receive(:cloud_storage_transfer).and_return(cloud_storage_transfer)
       allow(factory).to receive(:big_query_dataset).and_return(big_query_dataset)
       allow(factory).to receive(:redshift_table_schema).and_return(redshift_table_schema)
+      allow(factory).to receive(:cleaner).and_return(cleaner)
       allow(factory).to receive(:s3_resource).and_return(nil)
       allow(redshift_unloader).to receive(:unload_to)
       allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage)
       allow(big_query_dataset).to receive(:table).with('the_rs_table').and_return(big_query_table)
       allow(big_query_table).to receive(:load)
       allow(redshift_table_schema).to receive(:to_big_query).and_return(big_query_table_schema)
+      allow(cleaner).to receive(:cleanup)
     end
 
     describe '#run' do
@@ -148,9 +154,17 @@ module BigShift
         expect(big_query_table).to have_received(:load).with(anything, hash_including(schema: big_query_table_schema))
       end
 
-      it 'deletes the unloaded data on S3'
-
-      it 'deletes the transferred data on Cloud Storage'
+      it 'deletes the unloaded data on S3 and Cloud Storage' do
+        unload_manifest = nil
+        cs_bucket_name = nil
+        allow(cleaner).to receive(:cleanup) do |um, csbn|
+          unload_manifest = um
+          cs_bucket_name = csbn
+        end
+        cli.run
+        expect(unload_manifest.bucket_name).to eq('the-s3-staging-bucket')
+        expect(cs_bucket_name).to eq('the-cs-bucket')
+      end
 
       it 'creates the necessary components using the specified config parameters' do
         cli.run

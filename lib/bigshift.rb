@@ -1,5 +1,6 @@
 require 'google/apis/bigquery_v2'
 require 'google/apis/storagetransfer_v1'
+require 'google/apis/storage_v1'
 require 'aws-sdk'
 
 module BigShift
@@ -29,3 +30,4 @@ require 'bigshift/redshift_table_schema'
 require 'bigshift/redshift_unloader'
 require 'bigshift/cloud_storage_transfer'
 require 'bigshift/unload_manifest'
+require 'bigshift/cleaner'

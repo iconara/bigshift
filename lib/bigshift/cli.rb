@@ -63,6 +63,7 @@ module BigShift
     end
 
     def cleanup
+      @factory.cleaner.cleanup(@unload_manifest, @config[:cs_bucket_name])
     end
 
     ARGUMENTS = [
@@ -142,6 +143,10 @@ module BigShift
       @big_query_dataset ||= BigQuery::Dataset.new(bq_service, raw_gcp_credentials['project_id'], @config[:bq_dataset_id], logger: logger)
     end
 
+    def cleaner
+      @cleaner ||= Cleaner.new(s3_resource, cs_service, logger: logger)
+    end
+
     def s3_resource
       @s3_resource ||= Aws::S3::Resource.new(
         access_key_id: aws_credentials['aws_access_key_id'],
@@ -171,6 +176,14 @@ module BigShift
     def cs_transfer_service
       @cs_transfer_service ||= begin
         s = Google::Apis::StoragetransferV1::StoragetransferService.new
+        s.authorization = gcp_credentials
+        s
+      end
+    end
+
+    def cs_service
+      @cs_service ||= begin
+        s = Google::Apis::StorageV1::StorageService.new
         s.authorization = gcp_credentials
         s
       end

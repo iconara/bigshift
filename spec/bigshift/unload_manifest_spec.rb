@@ -1,7 +1,7 @@
 module BigShift
   describe UnloadManifest do
     let :manifest do
-      described_class.new(s3_resource, 'my-bucket', 'some/prefix')
+      described_class.new(s3_resource, 'my-bucket', 'some/prefix/')
     end
 
     let :s3_resource do
@@ -39,7 +39,13 @@ module BigShift
 
     describe '#prefix' do
       it 'returns the prefix' do
-        expect(manifest.prefix).to eq('some/prefix')
+        expect(manifest.prefix).to eq('some/prefix/')
+      end
+    end
+
+    describe '#manifest_key' do
+      it 'returns the prefix + "manifest"' do
+        expect(manifest.manifest_key).to eq('some/prefix/manifest')
       end
     end
 
