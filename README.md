@@ -42,6 +42,39 @@ aws_secret_access_key: eW91ZmlndXJlZG91dGl0d2FzYmFzZTY0ISEhCg
 
 These credentials need to be allowed to read and write the S3 location you specify with `--s3-bucket` and `--s3-prefix`.
 
+Here is a minimal IAM policy that should work:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::THE-NAME-OF-THE-BUCKET/THE/PREFIX/*"
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::THE-NAME-OF-THE-BUCKET"
+      ],
+      "Effect": "Allow"
+    }
+  ]
+}
+```
+
+If you set `THE-NAME-OF-THE-BUCKET` to the same value as `--s3-bucket` and `THE/PREFIX` to the same value as `--s3-prefix` you're limiting the damage that BigShift can do, and unless you store something else at that location there is very little damage to be done.
+
 ### Redshift credentials
 
 The `--rs-credentials` argument must be a path to a JSON or YAML file that contains the `host` and `port` of the Redshift cluster, as well as the `username` and `password` required to connect.
