@@ -72,7 +72,6 @@ module BigShift
         '--cs-bucket', 'the-cs-bucket',
         '--bq-dataset', 'the_bq_dataset',
         '--gcp-credentials', 'gcp-credentials.yml',
-        '--aws-credentials', 'aws-credentials.yml',
         '--rs-credentials', 'rs-credentials.yml',
       ]
     end
@@ -177,14 +176,15 @@ module BigShift
         ))
       end
 
-      it 'reads the specified AWS configuration' do
+      it 'reads the specified configuration files' do
         cli.run
         expect(factory_factory).to have_received(:call).with(hash_including(
           :gcp_credentials => gcp_credentials,
-          :aws_credentials => aws_credentials,
           :rs_credentials => rs_credentials,
         ))
       end
+
+      it 'uses the AWS SDK\'s credentials resolution mechanisms'
 
       context 'with the --s3-prefix argument' do
         let :argv do
@@ -280,7 +280,7 @@ module BigShift
         end
       end
 
-      %w[gcp aws rs].each do |prefix|
+      %w[gcp rs].each do |prefix|
         context "when --#{prefix}-credentials is not specified" do
           let :argv do
             a = super()
@@ -314,6 +314,34 @@ module BigShift
               error = e
             end
             expect(error.details).to include(%<"#{prefix}-credentials.yml" does not exist>)
+          end
+        end
+      end
+
+      context 'when --aws-credentials is specified' do
+        let :argv do
+          super() + ['--aws-credentials', 'aws-credentials.yml']
+        end
+
+        it 'uses the credentials from the file'
+
+        context 'and the file contains a region' do
+          it 'uses the region from the file'
+        end
+
+        context 'but the file does not exist' do
+          before do
+            FileUtils.rm_f('aws-credentials.yml')
+          end
+
+          it 'raises an error' do
+            error = nil
+            begin
+              cli.run
+            rescue => e
+              error = e
+            end
+            expect(error.details).to include('"aws-credentials.yml" does not exist')
           end
         end
       end

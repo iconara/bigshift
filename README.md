@@ -32,12 +32,15 @@ The `--gcp-credentials` argument must be a path to a JSON file that contains a p
 
 ### AWS credentials
 
-The `--aws-credentials` argument must be a path to a JSON or YAML file that contains `aws_access_key_id` and `aws_secret_access_key`, and optionally `token` and `region`.
+You can provide AWS credentials the same way that you can for the AWS SDK, that is with environment variables and files in specific locations in the file system, etc. See the [AWS SDK documentation](http://aws.amazon.com/documentation/sdk-for-ruby/) for more information. You can't use temporary credentials, like instance role credentials, unfortunately, because GCS Transfer Service doesn't support session tokens.
+
+You can also use the optional `--aws-credentials` argument to point to a JSON or YAML file that contains `access_key_id` and `secret_access_key`, and optionally `region`.
 
 ```yaml
 ---
-aws_access_key_id: AKXYZABC123FOOBARBAZ
-aws_secret_access_key: eW91ZmlndXJlZG91dGl0d2FzYmFzZTY0ISEhCg
+access_key_id: AKXYZABC123FOOBARBAZ
+secret_access_key: eW91ZmlndXJlZG91dGl0d2FzYmFzZTY0ISEhCg
+region: eu-west-1
 ```
 
 These credentials need to be allowed to read and write the S3 location you specify with `--s3-bucket` and `--s3-prefix`.
@@ -74,6 +77,8 @@ Here is a minimal IAM policy that should work:
 ```
 
 If you set `THE-NAME-OF-THE-BUCKET` to the same value as `--s3-bucket` and `THE/PREFIX` to the same value as `--s3-prefix` you're limiting the damage that BigShift can do, and unless you store something else at that location there is very little damage to be done.
+
+It is _strongly_ recommended that you create a specific IAM user with minimal permissions for use with BigShift. The nature of GCS Transfer Service means that these credentials are sent to and stored in GCP. The credentials are also used in the `UNLOAD` command sent to Redshift, and with the AWS SDK to work with the objects on S3.
 
 ### Redshift credentials
 

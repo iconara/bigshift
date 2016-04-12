@@ -37,8 +37,8 @@ module BigShift
           aws_s3_data_source: Google::Apis::StoragetransferV1::AwsS3Data.new(
             bucket_name: unload_manifest.bucket_name,
             aws_access_key: Google::Apis::StoragetransferV1::AwsAccessKey.new(
-              access_key_id: @aws_credentials['aws_access_key_id'],
-              secret_access_key: @aws_credentials['aws_secret_access_key'],
+              access_key_id: @aws_credentials.access_key_id,
+              secret_access_key: @aws_credentials.secret_access_key,
             )
           ),
           gcs_data_sink: Google::Apis::StoragetransferV1::GcsData.new(

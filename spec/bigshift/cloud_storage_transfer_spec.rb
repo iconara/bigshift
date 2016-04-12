@@ -9,10 +9,7 @@ module BigShift
     end
 
     let :aws_credentials do
-      {
-        'aws_access_key_id' => 'my-aws-access-key-id',
-        'aws_secret_access_key' => 'my-aws-secret-access-key',
-      }
+      double(:aws_credentials, access_key_id: 'my-aws-access-key-id', secret_access_key: 'my-aws-secret-access-key')
     end
 
     let :clock do

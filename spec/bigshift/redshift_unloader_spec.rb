@@ -13,10 +13,7 @@ module BigShift
     end
 
     let :aws_credentials do
-      {
-        'aws_access_key_id' => 'foo',
-        'aws_secret_access_key' => 'bar',
-      }
+      double(:aws_credentials, access_key_id: 'foo', secret_access_key: 'bar')
     end
 
     let :options do
@@ -114,26 +111,6 @@ module BigShift
 
         it 'includes the necessary SQL in the unload command' do
           expect(unload_command).to include(%q<(CASE WHEN "alive" THEN 1 ELSE 0 END)>)
-        end
-      end
-
-      context 'when the credentials contains "token"' do
-        let :aws_credentials do
-          super().merge('token' => '123')
-        end
-
-        it 'includes the token in the credentials string' do
-          expect(unload_command).to include(%q<CREDENTIALS 'aws_access_key_id=foo;aws_secret_access_key=bar;token=123'>)
-        end
-      end
-
-      context 'when the credentials incldue other keys' do
-        let :aws_credentials do
-          super().merge('hello' => 'world', 'foo' => 'bar')
-        end
-
-        it 'does not include them in the credentials string' do
-          expect(unload_command).to include(%q<CREDENTIALS 'aws_access_key_id=foo;aws_secret_access_key=bar'>)
         end
       end
     end

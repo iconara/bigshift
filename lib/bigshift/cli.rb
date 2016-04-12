@@ -68,7 +68,7 @@ module BigShift
 
     ARGUMENTS = [
       ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, :required],
-      ['--aws-credentials', 'PATH', String, :aws_credentials_path, :required],
+      ['--aws-credentials', 'PATH', String, :aws_credentials_path, nil],
       ['--rs-credentials', 'PATH', String, :rs_credentials_path, :required],
       ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
       ['--rs-table', 'TABLE_NAME', String, :rs_table_name, :required],
@@ -149,10 +149,8 @@ module BigShift
 
     def s3_resource
       @s3_resource ||= Aws::S3::Resource.new(
-        access_key_id: aws_credentials['aws_access_key_id'],
-        secret_access_key: aws_credentials['aws_secret_access_key'],
-        region: aws_credentials['region'],
-        session_token: aws_credentials['token']
+        region: aws_region,
+        credentials: aws_credentials
       )
     end
 
@@ -199,7 +197,22 @@ module BigShift
     end
 
     def aws_credentials
-      @config[:aws_credentials]
+      @aws_credentials ||= begin
+        if @config[:aws_credentials]
+          credentials = Aws::Credentials.new(*@config[:aws_credentials].values_at('access_key_id', 'secret_access_key'))
+        else
+          credentials = nil
+        end
+        if (credentials = Aws::CredentialProviderChain.new(credentials).resolve)
+          credentials
+        else
+          raise 'No AWS credentials found'
+        end
+      end
+    end
+
+    def aws_region
+      @aws_region ||= ((awsc = @config[:aws_credentials]) && awsc['region']) || ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
     end
 
     def raw_gcp_credentials
