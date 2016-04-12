@@ -166,7 +166,8 @@ module BigShift
         port: @config[:rs_credentials]['port'],
         dbname: @config[:rs_database_name],
         user: @config[:rs_credentials]['username'],
-        password: @config[:rs_credentials]['password']
+        password: @config[:rs_credentials]['password'],
+        sslmode: 'require'
       )
     end
 
