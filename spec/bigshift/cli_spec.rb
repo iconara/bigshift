@@ -160,7 +160,7 @@ module BigShift
         ))
       end
 
-      context 'with an S3 prefix' do
+      context 'with the --s3-prefix argument' do
         let :argv do
           super() + ['--s3-prefix', 'and/the/prefix']
         end
