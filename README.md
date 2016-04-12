@@ -88,9 +88,10 @@ Once the data is in GCS, the BigQuery table can be created and loaded. At this p
 
 `NOT NULL` becomes `REQUIRED` in BigQuery, and `NULL` becomes `NULLABLE`.
 
+Finally, once the BigQuery table has been loaded BigShift will remove the data it dumped to S3 and the data it transferred to Cloud Storage.
+
 # What doesn't it do?
 
-* Currently BigShift doesn't delete the dumped table from S3 or from GCS. This is planned.
 * BigShift can't currently append to an existing BigQuery table. This feature would be possible to add.
 * The tool will happily overwrite any data on S3, GCS and in BigQuery that happen to be in the way (i.e. in the specified S3 or GCS location, or in the target table). This is convenient if you want to move the same data multiple times, but very scary and unsafe. To clobber everything will be an option in the future, but the default will be much safer.
 * There is no transformation or processing of the data. When moving to BigQuery you might want to split a string and use the pieces as values in a repeated field, but BigShift doesn't help you with that. You will almost always have to do some post processing in BigQuery once the data has been moved. Processing on the way would require a lot more complexity and involve either Hadoop or Dataflow, and that's beyond the scope of a tool like this.
