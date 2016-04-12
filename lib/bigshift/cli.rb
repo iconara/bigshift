@@ -71,7 +71,7 @@ module BigShift
       ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
       ['--rs-table', 'TABLE_NAME', String, :rs_table_name, :required],
       ['--bq-dataset', 'DATASET_ID', String, :bq_dataset_id, :required],
-      ['--bq-table', 'TABLE_ID', String, :bq_table_id, :required],
+      ['--bq-table', 'TABLE_ID', String, :bq_table_id, nil],
       ['--s3-bucket', 'BUCKET_NAME', String, :s3_bucket_name, :required],
       ['--s3-prefix', 'PREFIX', String, :s3_prefix, nil],
       ['--cs-bucket', 'BUCKET_NAME', String, :cs_bucket_name, :required],
@@ -103,6 +103,7 @@ module BigShift
           config_errors << "#{flag} is required"
         end
       end
+      config[:bq_table_id] ||= config[:rs_table_name]
       unless config_errors.empty?
         raise CliError.new('Configuration missing or malformed', config_errors, parser.to_s)
       end

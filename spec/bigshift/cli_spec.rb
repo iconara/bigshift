@@ -67,7 +67,6 @@ module BigShift
         '--rs-table', 'the_rs_table',
         '--cs-bucket', 'the-cs-bucket',
         '--bq-dataset', 'the_bq_dataset',
-        '--bq-table', 'the_bq_table',
         '--gcp-credentials', 'gcp-credentials.yml',
         '--aws-credentials', 'aws-credentials.yml',
         '--rs-credentials', 'rs-credentials.yml',
@@ -100,7 +99,7 @@ module BigShift
       allow(factory).to receive(:redshift_table_schema).and_return(redshift_table_schema)
       allow(redshift_unloader).to receive(:unload_to)
       allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage)
-      allow(big_query_dataset).to receive(:table).with('the_bq_table').and_return(big_query_table)
+      allow(big_query_dataset).to receive(:table).with('the_rs_table').and_return(big_query_table)
       allow(big_query_table).to receive(:load)
       allow(redshift_table_schema).to receive(:to_big_query).and_return(big_query_table_schema)
     end
@@ -130,6 +129,11 @@ module BigShift
         expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/the_rs_database/the_rs_table/*', anything)
       end
 
+      it 'loads the transferred data into a table with the same name as the Redshift table' do
+        cli.run
+        expect(big_query_dataset).to have_received(:table).with('the_rs_table')
+      end
+
       it 'converts the Redshift table\'s schema and uses it when loading the BigQuery table' do
         cli.run
         expect(big_query_table).to have_received(:load).with(anything, hash_including(schema: big_query_table_schema))
@@ -147,7 +151,6 @@ module BigShift
           :rs_table_name => 'the_rs_table',
           :cs_bucket_name => 'the-cs-bucket',
           :bq_dataset_id => 'the_bq_dataset',
-          :bq_table_id => 'the_bq_table',
         ))
       end
 
@@ -188,6 +191,25 @@ module BigShift
         end
       end
 
+      context 'with the --bq-table argument' do
+        let :argv do
+          super() + ['--bq-table', 'the_bq_table']
+        end
+
+        before do
+          allow(big_query_dataset).to receive(:table).with('the_bq_table').and_return(big_query_table)
+        end
+
+        it 'loads into a BigQuery table by that name instead of a table with the same name as the Redshift table' do
+          cli.run
+          aggregate_failures do
+            expect(factory_factory).to have_received(:call).with(hash_including(bq_table_id: 'the_bq_table'))
+            expect(big_query_dataset).to have_received(:table).with('the_bq_table')
+            expect(big_query_dataset).to_not have_received(:table).with('the_rs_table')
+          end
+        end
+      end
+
       context 'with the --max-bad-records arguments' do
         let :argv do
           super() + ['--max-bad-records', '3']
@@ -207,7 +229,7 @@ module BigShift
 
         it 'creates the table' do
           cli.run
-          expect(big_query_dataset).to have_received(:create_table).with('the_bq_table')
+          expect(big_query_dataset).to have_received(:create_table).with('the_rs_table')
         end
       end
 
@@ -253,7 +275,6 @@ module BigShift
         --rs-database
         --rs-table
         --bq-dataset
-        --bq-table
         --s3-bucket
         --cs-bucket
       ].each do |flag|
