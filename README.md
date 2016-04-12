@@ -50,6 +50,12 @@ username: my_redshift_user
 password: dGhpc2lzYWxzb2Jhc2U2NAo
 ```
 
+### S3 prefix
+
+If you don't want to put the data dumped from Redshift directly into the root of the S3 bucket you can use the `--s3-prefix` to provide a prefix to where the dumps should be placed.
+
+Because of how GCS' Transfer Service works the transferred files will have exactly the same keys in the destination bucket, this cannot be configured.
+
 ### BigQuery table ID
 
 By default the BigQuery table ID will be the same as the Redshift table name, but the optional argument `--bq-table` can be used to tell BigShift to use another table ID.

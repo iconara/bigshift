@@ -189,6 +189,26 @@ module BigShift
           cli.run
           expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
         end
+
+        context 'and it has a slash prefix or suffix' do
+          it 'strips slashes from the front of the prefix' do
+            argv[-1] = '/and/the/prefix'
+            cli.run
+            aggregate_failures do
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/', anything)
+              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
+            end
+          end
+
+          it 'strips slashes from the end of the prefix' do
+            argv[-1] = 'and/the/prefix/'
+            cli.run
+            aggregate_failures do
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/', anything)
+              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
+            end
+          end
+        end
       end
 
       context 'with the --bq-table argument' do

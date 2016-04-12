@@ -113,6 +113,7 @@ module BigShift
     def s3_table_prefix
       components = @config.values_at(:rs_database_name, :rs_table_name)
       if (prefix = @config[:s3_prefix])
+        prefix = prefix.gsub(%r{\A/|/\Z}, '')
         components.unshift(prefix)
       end
       File.join(*components)
