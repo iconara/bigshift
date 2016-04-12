@@ -162,13 +162,11 @@ module BigShift
 
     def rs_connection
       @rs_connection ||= PG.connect(
-        @config[:rs_credentials]['host'],
-        @config[:rs_credentials]['port'],
-        nil,
-        nil,
-        @config[:rs_database_name],
-        @config[:rs_credentials]['username'],
-        @config[:rs_credentials]['password']
+        host: @config[:rs_credentials]['host'],
+        port: @config[:rs_credentials]['port'],
+        dbname: @config[:rs_database_name],
+        user: @config[:rs_credentials]['username'],
+        password: @config[:rs_credentials]['password']
       )
     end
 
