@@ -1,5 +1,9 @@
 # BigShift
 
+[![Build Status](https://travis-ci.org/iconara/bigshift.png?branch=master)](https://travis-ci.org/iconara/bigshift)
+
+_If you're reading this on GitHub, please note that this is the readme for the development version and that some features described here might not yet have been released. You can find the readme for a specific version either through [rubydoc.info](http://rubydoc.info/find/gems?q=bigshift) or via the release tags ([here is an example](https://github.com/iconara/bigshift/tree/v0.1.1))._
+
 BigShift is a tool for moving tables from Redshift to BigQuery. It will create a table in BigQuery with a schema that matches the Redshift table, dump the data to S3, transfer it to GCS and finally load it into the BigQuery table.
 
 # Installation
