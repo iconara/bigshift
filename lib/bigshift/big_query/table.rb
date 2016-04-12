@@ -19,6 +19,7 @@ module BigShift
         load_configuration[:field_delimiter] = '\t'
         load_configuration[:quote] = '"'
         load_configuration[:destination_table] = @table_data.table_reference
+        load_configuration[:max_bad_records] = options[:max_bad_records] if options[:max_bad_records]
         job = Google::Apis::BigqueryV2::Job.new(
           configuration: Google::Apis::BigqueryV2::JobConfiguration.new(
             load: Google::Apis::BigqueryV2::JobConfigurationLoad.new(load_configuration)

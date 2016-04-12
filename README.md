@@ -20,7 +20,7 @@ BigShift can also be used as a library in a Ruby application. Look at the tests,
 
 ## Arguments
 
-Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix` are required.
+Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix` and `--max-bad-records` are required.
 
 ### GCP credentials
 

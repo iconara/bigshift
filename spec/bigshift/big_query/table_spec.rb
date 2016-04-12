@@ -121,6 +121,16 @@ module BigShift
               expect(load_configuration.schema).to be_nil
             end
           end
+
+          context 'when the :max_bad_records option is specified' do
+            let :options do
+              super().merge(max_bad_records: 17)
+            end
+
+            it 'sets the corresponding load parameter' do
+              expect(load_configuration.max_bad_records).to eq(17)
+            end
+          end
         end
 
         context 'submits the load job and' do

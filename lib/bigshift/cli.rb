@@ -54,7 +54,11 @@ module BigShift
       bq_dataset = @factory.big_query_dataset
       bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
       gcs_uri = "gs://#{@config[:cs_bucket_name]}/#{s3_table_prefix}/*"
-      bq_table.load(gcs_uri, schema: rs_table_schema.to_big_query, allow_overwrite: true)
+      options = {}
+      options[:schema] = rs_table_schema.to_big_query
+      options[:allow_overwrite] = true
+      options[:max_bad_records] = @config[:max_bad_records] if @config[:max_bad_records]
+      bq_table.load(gcs_uri, options)
     end
 
     def cleanup
@@ -71,6 +75,7 @@ module BigShift
       ['--s3-bucket', 'BUCKET_NAME', String, :s3_bucket_name, :required],
       ['--s3-prefix', 'PREFIX', String, :s3_prefix, nil],
       ['--cs-bucket', 'BUCKET_NAME', String, :cs_bucket_name, :required],
+      ['--max-bad-records', 'N', Integer, :max_bad_records, nil],
     ]
 
     def parse_args(argv)

@@ -188,6 +188,17 @@ module BigShift
         end
       end
 
+      context 'with the --max-bad-records arguments' do
+        let :argv do
+          super() + ['--max-bad-records', '3']
+        end
+
+        it 'specifies the :max_bad_records option when loading the BigQuery table' do
+          cli.run
+          expect(big_query_table).to have_received(:load).with(anything, hash_including(max_bad_records: 3))
+        end
+      end
+
       context 'when the BigQuery table does not exist' do
         before do
           allow(big_query_dataset).to receive(:table).and_return(nil)
