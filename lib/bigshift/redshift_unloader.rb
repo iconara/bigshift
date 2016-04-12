@@ -8,7 +8,7 @@ module BigShift
 
     def unload_to(table_name, s3_uri, options={})
       table_schema = RedshiftTableSchema.new(table_name, @redshift_connection)
-      credentials = @aws_credentials.map { |pair| pair.join('=') }.join(';')
+      credentials = AWS_CREDENTIAL_KEYS.zip(@aws_credentials.values_at(*AWS_CREDENTIAL_KEYS)).select { |pair| pair[1] }.map { |pair| pair.join('=') }.join(';')
       select_sql = 'SELECT '
       select_sql << table_schema.columns.map(&:to_sql).join(', ')
       select_sql << %Q< FROM "#{table_name}">
@@ -16,11 +16,14 @@ module BigShift
       unload_sql = %Q<UNLOAD ('#{select_sql}')>
       unload_sql << %Q< TO '#{s3_uri}'>
       unload_sql << %Q< CREDENTIALS '#{credentials}'>
+      unload_sql << %q< MANIFEST>
       unload_sql << %q< DELIMITER '\t'>
       unload_sql << %q< ALLOWOVERWRITE> if options[:allow_overwrite]
       @logger.info(sprintf('Unloading Redshift table %s to %s', table_name, s3_uri))
       @redshift_connection.exec(unload_sql)
       @logger.info(sprintf('Unload of %s complete', table_name))
     end
+
+    AWS_CREDENTIAL_KEYS = %w[aws_access_key_id aws_secret_access_key token].freeze
   end
 end

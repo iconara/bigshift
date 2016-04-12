@@ -28,7 +28,7 @@ The `--gcp-credentials` argument must be a path to a JSON file that contains a p
 
 ### AWS credentials
 
-The `--aws-credentials` argument must be a path to a JSON or YAML file that contains `aws_access_key_id` and `aws_secret_access_key`, and optionally `token`.
+The `--aws-credentials` argument must be a path to a JSON or YAML file that contains `aws_access_key_id` and `aws_secret_access_key`, and optionally `token` and `region`.
 
 ```yaml
 ---
