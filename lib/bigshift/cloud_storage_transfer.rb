@@ -9,11 +9,11 @@ module BigShift
       @logger = options[:logger] || NullLogger::INSTANCE
     end
 
-    def copy_to_cloud_storage(s3_bucket, s3_path_prefix, cloud_storage_bucket, options={})
+    def copy_to_cloud_storage(unload_manifest, cloud_storage_bucket, options={})
       poll_interval = options[:poll_interval] || DEFAULT_POLL_INTERVAL
-      transfer_job = create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, options[:description], options[:allow_overwrite])
+      transfer_job = create_transfer_job(unload_manifest, cloud_storage_bucket, options[:description], options[:allow_overwrite])
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
-      @logger.info(sprintf('Transferring objects from s3://%s/%s to gs://%s/%s', s3_bucket, s3_path_prefix, cloud_storage_bucket, s3_path_prefix))
+      @logger.info(sprintf('Transferring %d objects from s3://%s/%s to gs://%s/%s', unload_manifest.size, unload_manifest.bucket_name, unload_manifest.prefix, cloud_storage_bucket, unload_manifest.prefix))
       await_completion(transfer_job, poll_interval)
       nil
     end
@@ -22,7 +22,7 @@ module BigShift
 
     DEFAULT_POLL_INTERVAL = 30
 
-    def create_transfer_job(s3_bucket, s3_path_prefix, cloud_storage_bucket, description, allow_overwrite)
+    def create_transfer_job(unload_manifest, cloud_storage_bucket, description, allow_overwrite)
       now = @clock.now.utc
       Google::Apis::StoragetransferV1::TransferJob.new(
         description: description,
@@ -35,7 +35,7 @@ module BigShift
         ),
         transfer_spec: Google::Apis::StoragetransferV1::TransferSpec.new(
           aws_s3_data_source: Google::Apis::StoragetransferV1::AwsS3Data.new(
-            bucket_name: s3_bucket,
+            bucket_name: unload_manifest.bucket_name,
             aws_access_key: Google::Apis::StoragetransferV1::AwsAccessKey.new(
               access_key_id: @aws_credentials['aws_access_key_id'],
               secret_access_key: @aws_credentials['aws_secret_access_key'],
@@ -45,7 +45,7 @@ module BigShift
             bucket_name: cloud_storage_bucket
           ),
           object_conditions: Google::Apis::StoragetransferV1::ObjectConditions.new(
-            include_prefixes: [s3_path_prefix]
+            include_prefixes: unload_manifest.keys,
           ),
           transfer_options: Google::Apis::StoragetransferV1::TransferOptions.new(
             overwrite_objects_already_existing_in_sink: !!allow_overwrite

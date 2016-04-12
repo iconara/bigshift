@@ -97,6 +97,7 @@ module BigShift
       allow(factory).to receive(:cloud_storage_transfer).and_return(cloud_storage_transfer)
       allow(factory).to receive(:big_query_dataset).and_return(big_query_dataset)
       allow(factory).to receive(:redshift_table_schema).and_return(redshift_table_schema)
+      allow(factory).to receive(:s3_resource).and_return(nil)
       allow(redshift_unloader).to receive(:unload_to)
       allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage)
       allow(big_query_dataset).to receive(:table).with('the_rs_table').and_return(big_query_table)
@@ -111,13 +112,21 @@ module BigShift
       end
 
       it 'transfers the unloaded data to Cloud Storage' do
+        unload_manifest = nil
+        allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |um, _, _|
+          unload_manifest = um
+        end
         cli.run
-        expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).with('the-s3-staging-bucket', 'the_rs_database/the_rs_table/', 'the-cs-bucket', anything)
+        aggregate_failures do
+          expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).with(anything, 'the-cs-bucket', anything)
+          expect(unload_manifest.bucket_name).to eq('the-s3-staging-bucket')
+          expect(unload_manifest.prefix).to eq('the_rs_database/the_rs_table')
+        end
       end
 
       it 'gives the transfer a description that contains the Redshift database and table names, and the current time' do
         description = nil
-        allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |_, _, _, options|
+        allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |_, _, options|
           description = options[:description]
         end
         cli.run
@@ -181,8 +190,12 @@ module BigShift
         end
 
         it 'transfers that S3 location' do
+          unload_manifest = nil
+          allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |um, _, _|
+            unload_manifest = um
+          end
           cli.run
-          expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).with(anything, 'and/the/prefix/the_rs_database/the_rs_table/', anything, anything)
+          expect(unload_manifest.prefix).to eq('and/the/prefix/the_rs_database/the_rs_table')
         end
 
         it 'loads from that location' do

@@ -27,6 +27,18 @@ module BigShift
       double(:logger, debug: nil, info: nil, warn: nil)
     end
 
+    let :unload_manifest do
+      double(:unload_manifest)
+    end
+
+    let :keys do
+      [
+        'the/prefix/0000_part_00',
+        'the/prefix/0001_part_00',
+        'the/prefix/0002_part_00',
+      ]
+    end
+
     let :created_jobs do
       []
     end
@@ -44,6 +56,10 @@ module BigShift
     end
 
     before do
+      allow(unload_manifest).to receive(:bucket_name).and_return('my-s3-bucket')
+      allow(unload_manifest).to receive(:prefix).and_return('the/prefix')
+      allow(unload_manifest).to receive(:keys).and_return(keys)
+      allow(unload_manifest).to receive(:size).and_return(3)
       allow(storage_transfer_service).to receive(:create_transfer_job) do |j|
         created_jobs << j
         allow(job).to receive(:description).and_return(j.description)
@@ -60,7 +76,7 @@ module BigShift
     describe '#copy_to' do
       context 'creates a transfer job that' do
         before do
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', options)
+          transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', options)
         end
 
         let :options do
@@ -109,11 +125,15 @@ module BigShift
           end
         end
 
-        it 'copies from the specified location on S3' do
+        it 'copies the keys from the manifest to GCS' do
           transfer_spec = created_jobs.first.transfer_spec
           aggregate_failures do
             expect(transfer_spec.aws_s3_data_source.bucket_name).to eq('my-s3-bucket')
-            expect(transfer_spec.object_conditions.include_prefixes).to eq(['the/prefix'])
+            expect(transfer_spec.object_conditions.include_prefixes).to eq([
+              'the/prefix/0000_part_00',
+              'the/prefix/0001_part_00',
+              'the/prefix/0002_part_00',
+            ])
           end
         end
 
@@ -146,7 +166,7 @@ module BigShift
 
       context 'when given a description' do
         it 'sets the job\'s description to the specified value' do
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
+          transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
           expect(created_jobs.first.description).to eq('foobar')
         end
       end
@@ -160,14 +180,14 @@ module BigShift
             filter = JSON.load(options[:filter])
             double(operations: [transfer_operation])
           end
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
+          transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
           expect(operation_name).to eq('transferOperations')
           expect(filter).to eq('project_id' => 'my_project', 'job_names' => ['my_job'])
         end
 
         it 'logs that the transfer has started' do
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
-          expect(logger).to have_received(:info).with('Transferring objects from s3://my-s3-bucket/the/prefix to gs://my-gcs-bucket/the/prefix')
+          transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
+          expect(logger).to have_received(:info).with('Transferring 3 objects from s3://my-s3-bucket/the/prefix to gs://my-gcs-bucket/the/prefix')
         end
 
         it 'waits until the transfer job is done' do
@@ -179,7 +199,7 @@ module BigShift
             double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
             double(operations: [double(done?: true, metadata: {'status' => 'SUCCESS'})]),
           )
-          transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+          transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
           expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(6).times
           expect(thread).to have_received(:sleep).with(13).exactly(5).times
         end
@@ -195,7 +215,7 @@ module BigShift
               double(operations: [double(done?: false, metadata: {'status' => 'IN_PROGRESS'})]),
               double(operations: [double(done?: true, metadata: {'status' => 'SUCCESS'})]),
             )
-            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+            transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
           end
 
           it 'logs the status when the job is not done' do
@@ -218,7 +238,7 @@ module BigShift
           end
 
           it 'raises an error' do
-            expect { transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket') }.to raise_error(/Transfer failed/)
+            expect { transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket') }.to raise_error(/Transfer failed/)
           end
         end
 
@@ -235,7 +255,7 @@ module BigShift
           end
 
           it 'logs statistics about the job when it completes' do
-            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar')
+            transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
             expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.65 GiB copied')
           end
         end
@@ -256,19 +276,19 @@ module BigShift
           end
 
           it 'retries the operation' do
-            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+            transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
             expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(4).times
             expect(thread).to have_received(:sleep).with(13).exactly(3).times
           end
 
           it 'logs the error' do
-            transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
+            transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar', poll_interval: 13)
             expect(logger).to have_received(:debug).with('Error while waiting for job "my_job", will retry: "Bork!" (Google::Apis::ServerError)')
           end
 
           it 'raises an error after five retries' do
             allow(storage_transfer_service).to receive(:list_transfer_operations).and_raise(Google::Apis::ServerError, 'Bork!')
-            expect { transfer.copy_to_cloud_storage('my-s3-bucket', 'the/prefix', 'my-gcs-bucket') }.to raise_error('Transfer failed: "Bork!" (Google::Apis::ServerError)')
+            expect { transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket') }.to raise_error('Transfer failed: "Bork!" (Google::Apis::ServerError)')
             expect(storage_transfer_service).to have_received(:list_transfer_operations).exactly(5).times
           end
         end

@@ -42,11 +42,12 @@ module BigShift
     def unload
       s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}/"
       @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: true)
+      @unload_manifest = UnloadManifest.new(@factory.s3_resource, @config[:s3_bucket_name], "#{s3_table_prefix}/")
     end
 
     def transfer
       description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
-      @factory.cloud_storage_transfer.copy_to_cloud_storage(@config[:s3_bucket_name], "#{s3_table_prefix}/", @config[:cs_bucket_name], description: description, allow_overwrite: true)
+      @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: true)
     end
 
     def load
@@ -139,6 +140,14 @@ module BigShift
 
     def big_query_dataset
       @big_query_dataset ||= BigQuery::Dataset.new(bq_service, raw_gcp_credentials['project_id'], @config[:bq_dataset_id], logger: logger)
+    end
+
+    def s3_resource
+      @s3_resource ||= Aws::S3::Resource.new(
+        access_key_id: aws_credentials['aws_access_key_id'],
+        secret_access_key: aws_credentials['aws_secret_access_key'],
+        region: aws_credentials['region']
+      )
     end
 
     private
