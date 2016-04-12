@@ -61,23 +61,23 @@ module BigShift
     end
 
     ARGUMENTS = [
-      ['--gcp-credentials', 'PATH', :gcp_credentials_path, :required],
-      ['--aws-credentials', 'PATH', :aws_credentials_path, :required],
-      ['--rs-credentials', 'PATH', :rs_credentials_path, :required],
-      ['--rs-database', 'DB_NAME', :rs_database_name, :required],
-      ['--rs-table', 'TABLE_NAME', :rs_table_name, :required],
-      ['--bq-dataset', 'DATASET_ID', :bq_dataset_id, :required],
-      ['--bq-table', 'TABLE_ID', :bq_table_id, :required],
-      ['--s3-bucket', 'BUCKET_NAME', :s3_bucket_name, :required],
-      ['--s3-prefix', 'PREFIX', :s3_prefix, nil],
-      ['--cs-bucket', 'BUCKET_NAME', :cs_bucket_name, :required],
+      ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, :required],
+      ['--aws-credentials', 'PATH', String, :aws_credentials_path, :required],
+      ['--rs-credentials', 'PATH', String, :rs_credentials_path, :required],
+      ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
+      ['--rs-table', 'TABLE_NAME', String, :rs_table_name, :required],
+      ['--bq-dataset', 'DATASET_ID', String, :bq_dataset_id, :required],
+      ['--bq-table', 'TABLE_ID', String, :bq_table_id, :required],
+      ['--s3-bucket', 'BUCKET_NAME', String, :s3_bucket_name, :required],
+      ['--s3-prefix', 'PREFIX', String, :s3_prefix, nil],
+      ['--cs-bucket', 'BUCKET_NAME', String, :cs_bucket_name, :required],
     ]
 
     def parse_args(argv)
       config = {}
       parser = OptionParser.new do |p|
-        ARGUMENTS.each do |flag, value_name, config_key, _|
-          p.on("#{flag} #{value_name}") { |v| config[config_key] = v }
+        ARGUMENTS.each do |flag, value_name, type, config_key, _|
+          p.on("#{flag} #{value_name}", type) { |v| config[config_key] = v }
         end
       end
       config_errors = []
@@ -93,7 +93,7 @@ module BigShift
           config_errors << sprintf('%s does not exist', path.inspect)
         end
       end
-      ARGUMENTS.each do |flag, _, config_key, required|
+      ARGUMENTS.each do |flag, _, _, config_key, required|
         if !config.include?(config_key) && required
           config_errors << "#{flag} is required"
         end
