@@ -151,7 +151,8 @@ module BigShift
       @s3_resource ||= Aws::S3::Resource.new(
         access_key_id: aws_credentials['aws_access_key_id'],
         secret_access_key: aws_credentials['aws_secret_access_key'],
-        region: aws_credentials['region']
+        region: aws_credentials['region'],
+        session_token: aws_credentials['token']
       )
     end
 
