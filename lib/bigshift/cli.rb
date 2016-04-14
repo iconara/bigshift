@@ -41,13 +41,13 @@ module BigShift
 
     def unload
       s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}/"
-      @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: true)
+      @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false)
       @unload_manifest = UnloadManifest.new(@factory.s3_resource, @config[:s3_bucket_name], "#{s3_table_prefix}/")
     end
 
     def transfer
       description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
-      @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: true)
+      @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
     end
 
     def load

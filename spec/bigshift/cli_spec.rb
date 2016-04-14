@@ -116,6 +116,11 @@ module BigShift
         expect(redshift_unloader).to have_received(:unload_to).with('the_rs_table', 's3://the-s3-staging-bucket/the_rs_database/the_rs_table/', anything)
       end
 
+      it 'does not allow the S3 location to be overwritten' do
+        cli.run
+        expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, hash_including(allow_overwrite: false))
+      end
+
       it 'transfers the unloaded data to Cloud Storage' do
         unload_manifest = nil
         allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |um, _, _|
@@ -136,6 +141,11 @@ module BigShift
         end
         cli.run
         expect(description).to match(/\Abigshift-the_rs_database-the_rs_table-\d{8}T\d{4}\Z/)
+      end
+
+      it 'does not allow the Cloud Storage destination to be overwritten' do
+        cli.run
+        expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).with(anything, anything, hash_including(allow_overwrite: false))
       end
 
       it 'loads the transferred data' do
