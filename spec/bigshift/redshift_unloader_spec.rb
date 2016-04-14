@@ -72,6 +72,10 @@ module BigShift
         expect(unload_command).to include(%q<MANIFEST>)
       end
 
+      it 'specifies that the output files should be compressed' do
+        expect(unload_command).to include(%q<GZIP>)
+      end
+
       it 'explicitly selects all columns from the table' do
         select_list = unload_command[/SELECT (.+) FROM "my_table"/, 1]
         aggregate_failures do

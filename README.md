@@ -26,6 +26,8 @@ BigShift can also be used as a library in a Ruby application. Look at the tests,
 
 Please note that transferring large amounts of data between AWS and GCP is not free. [AWS charges for outgoing traffic from S3](https://aws.amazon.com/s3/pricing/#Data_Transfer_Pricing). There are also storage charges for the Redshift dumps on S3 and GCS, but since they are kept only until the BigQuery table has been loaded those should be negligible.
 
+BigShift tells Redshift to compress the dumps, even if that means that the BigQuery load will be slower, in order to minimize the transfer cost.
+
 ## Arguments
 
 Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table` and `--max-bad-records` are required.
