@@ -18,8 +18,22 @@ module BigShift
       end
     end
 
-    def size
+    def count
       keys.size
+    end
+
+    def total_file_size
+      @total_file_size ||= begin
+        bucket = @s3_resource.bucket(@bucket_name)
+        objects = bucket.objects(prefix: @prefix)
+        objects.reduce(0) do |sum, object|
+          if keys.include?(object.key)
+            sum + object.size
+          else
+            sum
+          end
+        end
+      end
     end
   end
 end

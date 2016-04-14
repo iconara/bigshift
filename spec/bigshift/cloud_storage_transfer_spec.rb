@@ -56,7 +56,8 @@ module BigShift
       allow(unload_manifest).to receive(:bucket_name).and_return('my-s3-bucket')
       allow(unload_manifest).to receive(:prefix).and_return('the/prefix')
       allow(unload_manifest).to receive(:keys).and_return(keys)
-      allow(unload_manifest).to receive(:size).and_return(3)
+      allow(unload_manifest).to receive(:count).and_return(keys.size)
+      allow(unload_manifest).to receive(:total_file_size).and_return(1.42 * 2**30)
       allow(storage_transfer_service).to receive(:create_transfer_job) do |j|
         created_jobs << j
         allow(job).to receive(:description).and_return(j.description)
@@ -182,9 +183,9 @@ module BigShift
           expect(filter).to eq('project_id' => 'my_project', 'job_names' => ['my_job'])
         end
 
-        it 'logs that the transfer has started' do
+        it 'logs that the transfer has started, the number of files and their total size' do
           transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
-          expect(logger).to have_received(:info).with('Transferring 3 objects from s3://my-s3-bucket/the/prefix to gs://my-gcs-bucket/the/prefix')
+          expect(logger).to have_received(:info).with('Transferring 3 objects (1.42 GiB) from s3://my-s3-bucket/the/prefix to gs://my-gcs-bucket/the/prefix')
         end
 
         it 'waits until the transfer job is done' do

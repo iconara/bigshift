@@ -36,7 +36,7 @@ module BigShift
       allow(unload_manifest).to receive(:bucket_name).and_return('my-s3-bucket')
       allow(unload_manifest).to receive(:prefix).and_return('the/path/to/')
       allow(unload_manifest).to receive(:keys).and_return(keys)
-      allow(unload_manifest).to receive(:size).and_return(keys.size)
+      allow(unload_manifest).to receive(:count).and_return(keys.count)
       allow(unload_manifest).to receive(:manifest_key).and_return('the/path/to/manifest')
       allow(s3_resource).to receive(:bucket).with('my-s3-bucket').and_return(s3_bucket)
       allow(s3_bucket).to receive(:delete_objects)

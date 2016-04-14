@@ -13,7 +13,7 @@ module BigShift
       poll_interval = options[:poll_interval] || DEFAULT_POLL_INTERVAL
       transfer_job = create_transfer_job(unload_manifest, cloud_storage_bucket, options[:description], options[:allow_overwrite])
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
-      @logger.info(sprintf('Transferring %d objects from s3://%s/%s to gs://%s/%s', unload_manifest.size, unload_manifest.bucket_name, unload_manifest.prefix, cloud_storage_bucket, unload_manifest.prefix))
+      @logger.info(sprintf('Transferring %d objects (%.2f GiB) from s3://%s/%s to gs://%s/%s', unload_manifest.count, unload_manifest.total_file_size.to_f/2**30, unload_manifest.bucket_name, unload_manifest.prefix, cloud_storage_bucket, unload_manifest.prefix))
       await_completion(transfer_job, poll_interval)
       nil
     end

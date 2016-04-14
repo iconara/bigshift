@@ -22,7 +22,7 @@ module BigShift
     end
 
     def cleanup_cs(bucket_name, unload_manifest)
-      @logger.info(sprintf('Deleting %d files from gs://%s/%s', unload_manifest.size, bucket_name, unload_manifest.prefix))
+      @logger.info(sprintf('Deleting %d files from gs://%s/%s', unload_manifest.count, bucket_name, unload_manifest.prefix))
       unload_manifest.keys.each do |key|
         @cs_service.delete_object(bucket_name, key)
       end
