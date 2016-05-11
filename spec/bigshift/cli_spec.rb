@@ -107,6 +107,7 @@ module BigShift
       allow(factory).to receive(:cleaner).and_return(cleaner)
       allow(factory).to receive(:s3_resource).and_return(nil)
       allow(factory).to receive(:logger).and_return(logger)
+      allow(factory).to receive(:create_unload_manifest) { |s3_bucket_name, s3_table_prefix| UnloadManifest.new(nil, nil, s3_bucket_name, s3_table_prefix) }
       allow(redshift_unloader).to receive(:unload_to)
       allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage)
       allow(big_query_dataset).to receive(:table).with('the_rs_table').and_return(big_query_table)

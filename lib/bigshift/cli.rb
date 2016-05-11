@@ -51,7 +51,7 @@ module BigShift
       else
         @logger.debug('Skipping unload')
       end
-      @unload_manifest = UnloadManifest.new(@factory.s3_resource, @config[:s3_bucket_name], s3_table_prefix)
+      @unload_manifest = @factory.create_unload_manifest(@config[:s3_bucket_name], s3_table_prefix)
     end
 
     def transfer
@@ -194,6 +194,10 @@ module BigShift
 
     def logger
       @logger ||= Logger.new($stderr)
+    end
+
+    def create_unload_manifest(s3_bucket_name, s3_table_prefix)
+      UnloadManifest.new(s3_resource, cs_service, @config[:s3_bucket_name], s3_table_prefix)
     end
 
     private

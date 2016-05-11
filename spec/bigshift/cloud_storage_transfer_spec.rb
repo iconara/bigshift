@@ -50,6 +50,7 @@ module BigShift
       allow(unload_manifest).to receive(:manifest_key).and_return('the/prefix-manifest')
       allow(unload_manifest).to receive(:count).and_return(3)
       allow(unload_manifest).to receive(:total_file_size).and_return(1.42 * 2**30)
+      allow(unload_manifest).to receive(:validate_transfer).with('my-gcs-bucket')
       allow(storage_transfer_service).to receive(:create_transfer_job) do |j|
         created_jobs << j
         allow(job).to receive(:description).and_return(j.description)
@@ -229,21 +230,37 @@ module BigShift
           end
         end
 
-        context 'when the job metadata contains counters' do
+        context 'when the job has completed successfully' do
           let :transfer_operation do
-            double(done?: true, metadata: {'status' => 'SUCCESS', 'counters' => counters})
+            double(done?: true, metadata: {'status' => 'SUCCESS'})
           end
 
-          let :counters do
-            {
-              'objectsCopiedToSink' => '1106',
-              'bytesCopiedToSink' => '33980210508'
-            }
-          end
-
-          it 'logs statistics about the job when it completes' do
+          it 'validates the transfer' do
             transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
-            expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.65 GiB copied')
+            expect(unload_manifest).to have_received(:validate_transfer).with('my-gcs-bucket')
+          end
+
+          it 'logs that the transfer was valid' do
+            transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
+            expect(logger).to have_received(:info).with('Transfer validated, all file sizes match')
+          end
+
+          context 'and the job metadata contains counters' do
+            let :transfer_operation do
+              double(done?: true, metadata: {'status' => 'SUCCESS', 'counters' => counters})
+            end
+
+            let :counters do
+              {
+                'objectsCopiedToSink' => '1106',
+                'bytesCopiedToSink' => '33980210508'
+              }
+            end
+
+            it 'logs statistics about the job when it completes' do
+              transfer.copy_to_cloud_storage(unload_manifest, 'my-gcs-bucket', description: 'foobar')
+              expect(logger).to have_received(:info).with('Transfer foobar complete, 1106 objects and 31.65 GiB copied')
+            end
           end
         end
 
