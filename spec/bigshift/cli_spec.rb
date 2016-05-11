@@ -118,7 +118,7 @@ module BigShift
     describe '#run' do
       it 'unloads the Redshift table to S3' do
         cli.run
-        expect(redshift_unloader).to have_received(:unload_to).with('the_rs_table', 's3://the-s3-staging-bucket/the_rs_database/the_rs_table/', anything)
+        expect(redshift_unloader).to have_received(:unload_to).with('the_rs_table', 's3://the-s3-staging-bucket/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
       end
 
       it 'does not allow the S3 location to be overwritten' do
@@ -135,7 +135,7 @@ module BigShift
         aggregate_failures do
           expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).with(anything, 'the-cs-bucket', anything)
           expect(unload_manifest.bucket_name).to eq('the-s3-staging-bucket')
-          expect(unload_manifest.prefix).to eq('the_rs_database/the_rs_table/')
+          expect(unload_manifest.prefix).to eq('the_rs_database/the_rs_table/the_rs_database-the_rs_table-')
         end
       end
 
@@ -155,7 +155,7 @@ module BigShift
 
       it 'loads the transferred data' do
         cli.run
-        expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/the_rs_database/the_rs_table/*', anything)
+        expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
       end
 
       it 'loads the transferred data into a table with the same name as the Redshift table' do
@@ -215,7 +215,7 @@ module BigShift
 
         it 'unloads to a location on S3 under the specified prefix' do
           cli.run
-          expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/', anything)
+          expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
         end
 
         it 'transfers that S3 location' do
@@ -224,12 +224,12 @@ module BigShift
             unload_manifest = um
           end
           cli.run
-          expect(unload_manifest.prefix).to eq('and/the/prefix/the_rs_database/the_rs_table/')
+          expect(unload_manifest.prefix).to eq('and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-')
         end
 
         it 'loads from that location' do
           cli.run
-          expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
+          expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
         end
 
         context 'and it has a slash prefix or suffix' do
@@ -237,8 +237,8 @@ module BigShift
             argv[-1] = '/and/the/prefix'
             cli.run
             aggregate_failures do
-              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/', anything)
-              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
             end
           end
 
@@ -246,8 +246,8 @@ module BigShift
             argv[-1] = 'and/the/prefix/'
             cli.run
             aggregate_failures do
-              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/', anything)
-              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/*', anything)
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+              expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
             end
           end
         end

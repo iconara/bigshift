@@ -45,7 +45,8 @@ module BigShift
             bucket_name: cloud_storage_bucket
           ),
           object_conditions: Google::Apis::StoragetransferV1::ObjectConditions.new(
-            include_prefixes: unload_manifest.keys,
+            include_prefixes: [unload_manifest.prefix],
+            exclude_prefixes: [unload_manifest.manifest_key]
           ),
           transfer_options: Google::Apis::StoragetransferV1::TransferOptions.new(
             overwrite_objects_already_existing_in_sink: !!allow_overwrite
