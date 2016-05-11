@@ -40,6 +40,10 @@ module BigShift
       double(:big_query_table_schema)
     end
 
+    let :logger do
+      double(:logger, debug: nil)
+    end
+
     let :gcp_credentials do
       {
         'type' => 'service_account',
@@ -102,6 +106,7 @@ module BigShift
       allow(factory).to receive(:redshift_table_schema).and_return(redshift_table_schema)
       allow(factory).to receive(:cleaner).and_return(cleaner)
       allow(factory).to receive(:s3_resource).and_return(nil)
+      allow(factory).to receive(:logger).and_return(logger)
       allow(redshift_unloader).to receive(:unload_to)
       allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage)
       allow(big_query_dataset).to receive(:table).with('the_rs_table').and_return(big_query_table)
@@ -352,6 +357,60 @@ module BigShift
               error = e
             end
             expect(error.details).to include('"aws-credentials.yml" does not exist')
+          end
+        end
+      end
+
+      context 'when --steps is specified' do
+        let :argv do
+          super() + ['--steps', 'load,cleanup']
+        end
+
+        it 'runs only the specified steps' do
+          cli.run
+          aggregate_failures do
+            expect(redshift_unloader).to_not have_received(:unload_to)
+            expect(cloud_storage_transfer).to_not have_received(:copy_to_cloud_storage)
+            expect(big_query_table).to have_received(:load)
+            expect(cleaner).to have_received(:cleanup)
+          end
+        end
+
+        it 'logs when it skips a step' do
+          cli.run
+          aggregate_failures do
+            expect(logger).to have_received(:debug).with('Skipping unload')
+            expect(logger).to have_received(:debug).with('Skipping transfer')
+          end
+        end
+
+        context 'and the unload step is not included' do
+          let :argv do
+            super() + ['--steps', 'transfer,load']
+          end
+
+          it 'still reads the unload manifest' do
+            unload_manifest = nil
+            allow(cloud_storage_transfer).to receive(:copy_to_cloud_storage) do |um, _, _|
+              unload_manifest = um
+            end
+            cli.run
+            expect(unload_manifest).to_not be_nil
+          end
+        end
+
+        context 'and the steps are specified out of order' do
+          let :argv do
+            super() + ['--steps', 'transfer,cleanup,load']
+          end
+
+          it 'runs the steps in the correct order' do
+            cli.run
+            aggregate_failures do
+              expect(cloud_storage_transfer).to have_received(:copy_to_cloud_storage).ordered
+              expect(big_query_table).to have_received(:load).ordered
+              expect(cleaner).to have_received(:cleanup).ordered
+            end
           end
         end
       end
