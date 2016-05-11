@@ -34,37 +34,65 @@ module BigShift
 
     private
 
+    def run?(step)
+      @config[:steps].include?(step)
+    end
+
     def setup
       @config = parse_args(@argv)
       @factory = @factory_factory.call(@config)
+      @logger = @factory.logger
     end
 
     def unload
-      s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}/"
-      @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false)
+      if run?(:unload)
+        s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}/"
+        @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false)
+      else
+        @logger.debug('Skipping unload')
+      end
       @unload_manifest = UnloadManifest.new(@factory.s3_resource, @config[:s3_bucket_name], "#{s3_table_prefix}/")
     end
 
     def transfer
-      description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
-      @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
+      if run?(:transfer)
+        description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
+        @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
+      else
+        @logger.debug('Skipping transfer')
+      end
     end
 
     def load
-      rs_table_schema = @factory.redshift_table_schema
-      bq_dataset = @factory.big_query_dataset
-      bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
-      gcs_uri = "gs://#{@config[:cs_bucket_name]}/#{s3_table_prefix}/*"
-      options = {}
-      options[:schema] = rs_table_schema.to_big_query
-      options[:allow_overwrite] = true
-      options[:max_bad_records] = @config[:max_bad_records] if @config[:max_bad_records]
-      bq_table.load(gcs_uri, options)
+      if run?(:load)
+        rs_table_schema = @factory.redshift_table_schema
+        bq_dataset = @factory.big_query_dataset
+        bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
+        gcs_uri = "gs://#{@config[:cs_bucket_name]}/#{s3_table_prefix}/*"
+        options = {}
+        options[:schema] = rs_table_schema.to_big_query
+        options[:allow_overwrite] = true
+        options[:max_bad_records] = @config[:max_bad_records] if @config[:max_bad_records]
+        bq_table.load(gcs_uri, options)
+      else
+        @logger.debug('Skipping load')
+      end
     end
 
     def cleanup
-      @factory.cleaner.cleanup(@unload_manifest, @config[:cs_bucket_name])
+      if run?(:cleanup)
+        @factory.cleaner.cleanup(@unload_manifest, @config[:cs_bucket_name])
+      else
+        @logger.debug('Skipping cleanup')
+      end
     end
+
+    STEPS = [
+      :unload,
+      :transfer,
+      :load,
+      :cleanup
+    ].freeze
 
     ARGUMENTS = [
       ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, :required],
@@ -78,6 +106,7 @@ module BigShift
       ['--s3-prefix', 'PREFIX', String, :s3_prefix, nil],
       ['--cs-bucket', 'BUCKET_NAME', String, :cs_bucket_name, :required],
       ['--max-bad-records', 'N', Integer, :max_bad_records, nil],
+      ['--steps', 'STEPS', Array, :steps, nil],
     ]
 
     def parse_args(argv)
@@ -106,6 +135,11 @@ module BigShift
         end
       end
       config[:bq_table_id] ||= config[:rs_table_name]
+      if config[:steps] && !config[:steps].empty?
+        config[:steps] = STEPS.select { |s| config[:steps].include?(s.to_s) }
+      else
+        config[:steps] = STEPS
+      end
       unless config_errors.empty?
         raise CliError.new('Configuration missing or malformed', config_errors, parser.to_s)
       end
@@ -154,11 +188,11 @@ module BigShift
       )
     end
 
-    private
-
     def logger
       @logger ||= Logger.new($stderr)
     end
+
+    private
 
     def rs_connection
       @rs_connection ||= PG.connect(
