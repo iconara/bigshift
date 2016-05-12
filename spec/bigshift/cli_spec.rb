@@ -416,6 +416,17 @@ module BigShift
         end
       end
 
+      context 'when --no-compression is specified' do
+        let :argv do
+          super() + ['--no-compression']
+        end
+
+        it 'tells the unloader not to compress the unloaded data' do
+          cli.run
+          expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, hash_including(compression: false))
+        end
+      end
+
       %w[
         --rs-database
         --rs-table
