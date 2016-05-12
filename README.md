@@ -28,11 +28,11 @@ Because a transfer can take a long time, it's highly recommended that you run th
 
 Please note that transferring large amounts of data between AWS and GCP is not free. [AWS charges for outgoing traffic from S3](https://aws.amazon.com/s3/pricing/#Data_Transfer_Pricing). There are also storage charges for the Redshift dumps on S3 and GCS, but since they are kept only until the BigQuery table has been loaded those should be negligible.
 
-BigShift tells Redshift to compress the dumps, even if that means that the BigQuery load will be slower, in order to minimize the transfer cost.
+BigShift tells Redshift to compress the dumps by default, even if that means that the BigQuery load will be slower, in order to minimize the transfer cost. However, depending on your setup and data the individual files produced by Redshift might become larger than BigQuery's compressed file size limit of 4 GiB. In these cases you need to either uncompress the files manually on the GCP side (for example by running BigShift with just `--steps unload,transfer` to get the dumps to GCS), or dump and transfer uncompressed files (with `--no-compression`), at a higher bandwidth cost.
 
 ## Arguments
 
-Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table`, `--max-bad-records` and `--steps` are required.
+Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table`, `--max-bad-records`, `--steps` and `--[no-]compress` are required.
 
 ### GCP credentials
 
@@ -158,6 +158,16 @@ The certificates used by the Google APIs might not be installed on your system, 
 ```
 export SSL_CERT_FILE="$(find $GEM_HOME/gems -name 'google-api-client-*' | tail -n 1)/lib/cacerts.pem"
 ```
+
+### BigQuery says my files are not splittable and too large
+
+For example:
+
+> Input CSV files are not splittable and at least one of the files is larger than the maximum allowed size. Size is: 5838980665. Max allowed size is: 4294967296. Filename: gs://bigshift/foo/bar/foo-bar-0039_part_00.gz
+
+This happens when the (compressed) files exceed 4 GiB in size. Unfortunately it is not possible to control the size of the files produced by Redshift's `UNLOAD` command, and the size of the files will depend on the number of nodes in your cluster and the amount of data you're dumping.
+
+There are two options: either you use BigShift to get the dumps to GCS and then manually uncompress and load them (use `--steps unload,transfer`) or you dump without compression (use `--no-compression`). Keep in mind that without compression the bandwidth costs will be significanly higher.
 
 ### I get errors when the data is loaded into BigQuery
 
