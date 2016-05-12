@@ -118,6 +118,16 @@ module BigShift
         end
       end
 
+      context 'when the :compression option is nil' do
+        let :unload_options do
+          super().merge(compression: nil)
+        end
+
+        it 'includes GZIP in the unload command' do
+          expect(unload_command).to include(%q<GZIP>)
+        end
+      end
+
       context 'when Redshift datatypes need to be converted' do
         let :column_rows do
           super() << {'column' => 'alive', 'type' => 'boolean', 'notnull' => 't'}
