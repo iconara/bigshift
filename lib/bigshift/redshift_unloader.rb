@@ -17,8 +17,8 @@ module BigShift
       unload_sql << %Q< TO '#{s3_uri}'>
       unload_sql << %Q< CREDENTIALS '#{credentials_string}'>
       unload_sql << %q< MANIFEST>
-      unload_sql << %q< GZIP>
       unload_sql << %q< DELIMITER '\t'>
+      unload_sql << %q< GZIP> if options.fetch(:compression, true)
       unload_sql << %q< ALLOWOVERWRITE> if options[:allow_overwrite]
       @logger.info(sprintf('Unloading Redshift table %s to %s', table_name, s3_uri))
       @redshift_connection.exec(unload_sql)
