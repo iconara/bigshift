@@ -15,6 +15,7 @@ module BigShift
       transfer_job = @storage_transfer_service.create_transfer_job(transfer_job)
       @logger.info(sprintf('Transferring %d objects (%.2f GiB) from s3://%s/%s to gs://%s/%s', unload_manifest.count, unload_manifest.total_file_size.to_f/2**30, unload_manifest.bucket_name, unload_manifest.prefix, cloud_storage_bucket, unload_manifest.prefix))
       await_completion(transfer_job, poll_interval)
+      validate_transfer(unload_manifest, cloud_storage_bucket)
       nil
     end
 
@@ -45,7 +46,8 @@ module BigShift
             bucket_name: cloud_storage_bucket
           ),
           object_conditions: Google::Apis::StoragetransferV1::ObjectConditions.new(
-            include_prefixes: unload_manifest.keys,
+            include_prefixes: [unload_manifest.prefix],
+            exclude_prefixes: [unload_manifest.manifest_key]
           ),
           transfer_options: Google::Apis::StoragetransferV1::TransferOptions.new(
             overwrite_objects_already_existing_in_sink: !!allow_overwrite
@@ -99,6 +101,11 @@ module BigShift
         end
         @logger.info(message)
       end
+    end
+
+    def validate_transfer(unload_manifest, cloud_storage_bucket)
+      unload_manifest.validate_transfer(cloud_storage_bucket)
+      @logger.info('Transfer validated, all file sizes match')
     end
   end
 end

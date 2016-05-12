@@ -22,6 +22,8 @@ The main interface to BigShift is the `bigshift` command line tool.
 
 BigShift can also be used as a library in a Ruby application. Look at the tests, and how the `bigshift` tool is built to figure out how.
 
+Because a transfer can take a long time, it's highly recommended that you run the command in `screen` or `tmux` or using some other mechanism that ensures that the process isn't killed prematurely.
+
 ## Cost
 
 Please note that transferring large amounts of data between AWS and GCP is not free. [AWS charges for outgoing traffic from S3](https://aws.amazon.com/s3/pricing/#Data_Transfer_Pricing). There are also storage charges for the Redshift dumps on S3 and GCS, but since they are kept only until the BigQuery table has been loaded those should be negligible.
@@ -30,7 +32,7 @@ BigShift tells Redshift to compress the dumps, even if that means that the BigQu
 
 ## Arguments
 
-Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table` and `--max-bad-records` are required.
+Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table`, `--max-bad-records` and `--steps` are required.
 
 ### GCP credentials
 
@@ -107,6 +109,12 @@ Because of how GCS' Transfer Service works the transferred files will have exact
 ### BigQuery table ID
 
 By default the BigQuery table ID will be the same as the Redshift table name, but the optional argument `--bq-table` can be used to tell BigShift to use another table ID.
+
+### Running only some steps
+
+Using the `--steps` argument it's possible to skip some parts of the transfer, or resume a failed transfer. The default is `--steps unload,transfer,load,cleanup`, but using for example `--steps unload,transfer` would dump the table to S3 and transfer the files and then stop.
+
+Another case might be if for some reason the BigShift process was killed during the transfer step. The transfer will still run in GCS, and you might not want to start over from the start, it takes a long time to unload a big table, and an even longer time to transfer it, not to mention bandwidth costs. You can then run the same command again, but add `--steps load,cleanup` to the arguments to skip the unloading and transferring steps.
 
 # How does it work?
 

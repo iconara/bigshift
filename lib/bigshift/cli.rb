@@ -46,12 +46,12 @@ module BigShift
 
     def unload
       if run?(:unload)
-        s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}/"
+        s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}"
         @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false)
       else
         @logger.debug('Skipping unload')
       end
-      @unload_manifest = UnloadManifest.new(@factory.s3_resource, @config[:s3_bucket_name], "#{s3_table_prefix}/")
+      @unload_manifest = @factory.create_unload_manifest(@config[:s3_bucket_name], s3_table_prefix)
     end
 
     def transfer
@@ -68,7 +68,7 @@ module BigShift
         rs_table_schema = @factory.redshift_table_schema
         bq_dataset = @factory.big_query_dataset
         bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
-        gcs_uri = "gs://#{@config[:cs_bucket_name]}/#{s3_table_prefix}/*"
+        gcs_uri = "gs://#{@config[:cs_bucket_name]}/#{s3_table_prefix}*"
         options = {}
         options[:schema] = rs_table_schema.to_big_query
         options[:allow_overwrite] = true
@@ -147,12 +147,16 @@ module BigShift
     end
 
     def s3_table_prefix
-      components = @config.values_at(:rs_database_name, :rs_table_name)
-      if (prefix = @config[:s3_prefix])
-        prefix = prefix.gsub(%r{\A/|/\Z}, '')
-        components.unshift(prefix)
+      @s3_table_prefix ||= begin
+        db_name = @config[:rs_database_name]
+        table_name = @config[:rs_table_name]
+        prefix = "#{db_name}/#{table_name}/#{db_name}-#{table_name}-"
+        if (s3_prefix = @config[:s3_prefix])
+          s3_prefix = s3_prefix.gsub(%r{\A/|/\Z}, '')
+          prefix = "#{s3_prefix}/#{prefix}"
+        end
+        prefix
       end
-      File.join(*components)
     end
   end
 
@@ -190,6 +194,10 @@ module BigShift
 
     def logger
       @logger ||= Logger.new($stderr)
+    end
+
+    def create_unload_manifest(s3_bucket_name, s3_table_prefix)
+      UnloadManifest.new(s3_resource, cs_service, @config[:s3_bucket_name], s3_table_prefix)
     end
 
     private
