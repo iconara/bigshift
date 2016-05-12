@@ -47,7 +47,7 @@ module BigShift
     def unload
       if run?(:unload)
         s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}"
-        @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false)
+        @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false, compression: @config[:compression])
       else
         @logger.debug('Skipping unload')
       end
@@ -107,6 +107,7 @@ module BigShift
       ['--cs-bucket', 'BUCKET_NAME', String, :cs_bucket_name, :required],
       ['--max-bad-records', 'N', Integer, :max_bad_records, nil],
       ['--steps', 'STEPS', Array, :steps, nil],
+      ['--[no-]compression', nil, nil, :compression, nil],
     ]
 
     def parse_args(argv)
