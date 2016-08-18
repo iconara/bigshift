@@ -73,6 +73,7 @@ module BigShift
         '--s3-bucket', 'the-s3-staging-bucket',
         '--rs-database', 'the_rs_database',
         '--rs-table', 'the_rs_table',
+        '--rs-schema', 'the_rs_schema',
         '--cs-bucket', 'the-cs-bucket',
         '--bq-dataset', 'the_bq_dataset',
         '--gcp-credentials', 'gcp-credentials.yml',
@@ -119,12 +120,12 @@ module BigShift
     describe '#run' do
       it 'unloads the Redshift table to S3' do
         cli.run
-        expect(redshift_unloader).to have_received(:unload_to).with('the_rs_table', 's3://the-s3-staging-bucket/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+        expect(redshift_unloader).to have_received(:unload_to).with('the_rs_schema', 'the_rs_table', 's3://the-s3-staging-bucket/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
       end
 
       it 'does not allow the S3 location to be overwritten' do
         cli.run
-        expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, hash_including(allow_overwrite: false))
+        expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, anything, hash_including(allow_overwrite: false))
       end
 
       it 'transfers the unloaded data to Cloud Storage' do
@@ -186,6 +187,7 @@ module BigShift
         expect(factory_factory).to have_received(:call).with(hash_including(
           :s3_bucket_name => 'the-s3-staging-bucket',
           :rs_database_name => 'the_rs_database',
+          :rs_schema_name => 'the_rs_schema',
           :rs_table_name => 'the_rs_table',
           :cs_bucket_name => 'the-cs-bucket',
           :bq_dataset_id => 'the_bq_dataset',
@@ -216,7 +218,7 @@ module BigShift
 
         it 'unloads to a location on S3 under the specified prefix' do
           cli.run
-          expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+          expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
         end
 
         it 'transfers that S3 location' do
@@ -238,7 +240,7 @@ module BigShift
             argv[-1] = '/and/the/prefix'
             cli.run
             aggregate_failures do
-              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
               expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
             end
           end
@@ -247,7 +249,7 @@ module BigShift
             argv[-1] = 'and/the/prefix/'
             cli.run
             aggregate_failures do
-              expect(redshift_unloader).to have_received(:unload_to).with(anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
+              expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, 's3://the-s3-staging-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-', anything)
               expect(big_query_table).to have_received(:load).with('gs://the-cs-bucket/and/the/prefix/the_rs_database/the_rs_table/the_rs_database-the_rs_table-*', anything)
             end
           end
@@ -423,7 +425,7 @@ module BigShift
 
         it 'tells the unloader not to compress the unloaded data' do
           cli.run
-          expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, hash_including(compression: false))
+          expect(redshift_unloader).to have_received(:unload_to).with(anything, anything, anything, hash_including(compression: false))
         end
       end
 

@@ -1,7 +1,7 @@
 module BigShift
   describe RedshiftTableSchema do
     let :table_schema do
-      described_class.new('some_table', redshift_connection)
+      described_class.new('some_schema', 'some_table', redshift_connection)
     end
 
     let :redshift_connection do
@@ -18,13 +18,13 @@ module BigShift
     end
 
     before do
-      allow(redshift_connection).to receive(:exec_params).with(/SELECT .+ FROM "pg_table_def" WHERE .+ "tablename" = \$1/, anything).and_return(column_rows)
+      allow(redshift_connection).to receive(:exec_params).with(/SELECT .+ FROM "pg_table_def" WHERE "schemaname" = \$1 AND "tablename" = \$2/, anything).and_return(column_rows)
     end
 
     describe '#columns' do
       it 'queries the "pg_table_def" table filtering by the specified table' do
         table_schema.columns
-        expect(redshift_connection).to have_received(:exec_params).with(anything, ['some_table'])
+        expect(redshift_connection).to have_received(:exec_params).with(anything, ['some_schema', 'some_table'])
       end
 
       it 'loads the column names, types and nullity' do
@@ -158,11 +158,11 @@ module BigShift
 
       context 'when the Redshift table does not exist' do
         before do
-          allow(redshift_connection).to receive(:exec_params).with(anything, ['another_table']).and_return([])
+          allow(redshift_connection).to receive(:exec_params).with(anything, ['another_schema', 'another_table']).and_return([])
         end
 
         it 'raises an error' do
-          expect { described_class.new('another_table', redshift_connection).to_big_query }.to raise_error('Table not found: "another_table"')
+          expect { described_class.new('another_schema', 'another_table', redshift_connection).to_big_query }.to raise_error('Table "another_table" for schema "another_schema" not found')
         end
       end
     end
