@@ -215,7 +215,7 @@ module BigShift
         password: @config[:rs_credentials]['password'],
         sslmode: 'require'
       )
-      @rs_connection.exec("SET search_path = #{@config[:rs_schema_name]}")
+      @rs_connection.exec("SET search_path = \"#{@config[:rs_schema_name]}\"")
       @rs_connection
     end
 
