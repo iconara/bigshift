@@ -56,7 +56,7 @@ module BigShift
 
     def transfer
       if run?(:transfer)
-        description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
+        description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_schema_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
         @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
       else
         @logger.debug('Skipping transfer')
@@ -152,8 +152,9 @@ module BigShift
     def s3_table_prefix
       @s3_table_prefix ||= begin
         db_name = @config[:rs_database_name]
+        schema_name = @config[:rs_schema_name]
         table_name = @config[:rs_table_name]
-        prefix = "#{db_name}/#{table_name}/#{db_name}-#{table_name}-"
+        prefix = "#{db_name}/#{schema_name}/#{table_name}/#{db_name}-#{schema_name}-#{table_name}-"
         if (s3_prefix = @config[:s3_prefix])
           s3_prefix = s3_prefix.gsub(%r{\A/|/\Z}, '')
           prefix = "#{s3_prefix}/#{prefix}"
