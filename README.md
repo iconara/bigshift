@@ -38,6 +38,8 @@ Running `bigshift` without any arguments, or with `--help` will show the options
 
 The `--gcp-credentials` argument must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and chose JSON as the key type when prompted.
 
+If you haven't used Storage Transfer Service with your destination bucket before it might not have the right permissions setup, see below under [Troubleshooting](#insufficientpermissionswhentransferringtogcs) for more information.
+
 ### AWS credentials
 
 You can provide AWS credentials the same way that you can for the AWS SDK, that is with environment variables and files in specific locations in the file system, etc. See the [AWS SDK documentation](http://aws.amazon.com/documentation/sdk-for-ruby/) for more information. You can't use temporary credentials, like instance role credentials, unfortunately, because GCS Transfer Service doesn't support session tokens.
@@ -176,6 +178,16 @@ There are two options: either you use BigShift to get the dumps to GCS and then 
 ### I get errors when the data is loaded into BigQuery
 
 This could be anything, but it could be things that aren't escaped properly when the data is dumped from Redshift. Try figuring out from the errors where the problem is and what the data looks like and open an issue. The more you can figure out yourself the more likely it is that you will get help. No one wants to trawl through your data, make an effort.
+
+### Insufficient permissions when transferring to GCS
+
+The Google Storage bucket needs permissions for the Storage Transfer service's Service Account to write to it. If you haven't used Storage Transfer service with this bucket before the bucket might not have the necessary permissions set up.
+
+The easiest way for now to get that ID applied is to just create a manual Transfer request through the UI at which point you will have the permission automatically applied to the bucket.
+
+You can verify that this has been set up by inspecting the permissions for your bucket and check that there is a user with a name like `storage-transfer-<ID>@partnercontent.gserviceaccount.com` that is set up as a writer.
+
+If the permission on the bucket isn't there, the Storage Transfer service won't be able to find the bucket and will fail. You might see an error like "Failed to obtain the location of the destination Google Cloud Storage (GCS) bucket due to insufficient permissions".
 
 # Copyright
 
