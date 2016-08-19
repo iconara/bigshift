@@ -4,6 +4,7 @@ require 'json'
 require 'stringio'
 require 'logger'
 require 'optparse'
+require 'socket'
 require 'bigshift'
 
 module BigShift
@@ -215,6 +216,11 @@ module BigShift
         password: @config[:rs_credentials]['password'],
         sslmode: 'require'
       )
+      socket = Socket.for_fd(@rs_connection.socket)
+      socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
+      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, 5)
+      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, 2)
+      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, 2) if defined?(Socket::TCP_KEEPIDLE)
       @rs_connection.exec("SET search_path = \"#{@config[:rs_schema_name]}\"")
       @rs_connection
     end
