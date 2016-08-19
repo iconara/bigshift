@@ -38,6 +38,10 @@ Running `bigshift` without any arguments, or with `--help` will show the options
 
 The `--gcp-credentials` argument must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and chose JSON as the key type when prompted.
 
+The Google Storage bucket needs permissions for the Storage Transfer service's Service Account ... `storage-transfer-<ID>@partnercontent.gserviceaccount.com`. The easiest way for now to get that ID applied is to just create a manual Transfer request through the UI at which point you will have the permission automatically applied to the bucket.
+
+If the permission on the bucket isn't there, the Storage Transfer service won't be able to find the bucket and will fail.
+
 ### AWS credentials
 
 You can provide AWS credentials the same way that you can for the AWS SDK, that is with environment variables and files in specific locations in the file system, etc. See the [AWS SDK documentation](http://aws.amazon.com/documentation/sdk-for-ruby/) for more information. You can't use temporary credentials, like instance role credentials, unfortunately, because GCS Transfer Service doesn't support session tokens.
