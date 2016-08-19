@@ -1,15 +1,16 @@
 module BigShift
   class RedshiftTableSchema
-    def initialize(table_name, redshift_connection)
+    def initialize(schema_name, table_name, redshift_connection)
+      @schema_name = schema_name
       @table_name = table_name
       @redshift_connection = redshift_connection
     end
 
     def columns
       @columns ||= begin
-        rows = @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = 'public' AND "tablename" = $1|, [@table_name])
+        rows = @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = $1 AND "tablename" = $2|, [@schema_name, @table_name])
         if rows.count == 0
-          raise sprintf('Table not found: %s', @table_name.inspect)
+          raise sprintf('Table %s for schema %s not found', @table_name.inspect, @schema_name.inspect)
         else
           columns = rows.map do |row|
             name = row['column']

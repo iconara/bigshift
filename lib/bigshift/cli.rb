@@ -47,7 +47,7 @@ module BigShift
     def unload
       if run?(:unload)
         s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}"
-        @factory.redshift_unloader.unload_to(@config[:rs_table_name], s3_uri, allow_overwrite: false, compression: @config[:compression])
+        @factory.redshift_unloader.unload_to(@config[:rs_schema_name], @config[:rs_table_name], s3_uri, allow_overwrite: false, compression: @config[:compression])
       else
         @logger.debug('Skipping unload')
       end
@@ -56,7 +56,7 @@ module BigShift
 
     def transfer
       if run?(:transfer)
-        description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
+        description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_schema_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
         @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
       else
         @logger.debug('Skipping transfer')
@@ -99,6 +99,7 @@ module BigShift
       ['--aws-credentials', 'PATH', String, :aws_credentials_path, nil],
       ['--rs-credentials', 'PATH', String, :rs_credentials_path, :required],
       ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
+      ['--rs-schema', 'SCHEMA_NAME', String, :rs_schema_name, nil],
       ['--rs-table', 'TABLE_NAME', String, :rs_table_name, :required],
       ['--bq-dataset', 'DATASET_ID', String, :bq_dataset_id, :required],
       ['--bq-table', 'TABLE_ID', String, :bq_table_id, nil],
@@ -136,6 +137,7 @@ module BigShift
         end
       end
       config[:bq_table_id] ||= config[:rs_table_name]
+      config[:rs_schema_name] ||= 'public'
       if config[:steps] && !config[:steps].empty?
         config[:steps] = STEPS.select { |s| config[:steps].include?(s.to_s) }
       else
@@ -150,8 +152,9 @@ module BigShift
     def s3_table_prefix
       @s3_table_prefix ||= begin
         db_name = @config[:rs_database_name]
+        schema_name = @config[:rs_schema_name]
         table_name = @config[:rs_table_name]
-        prefix = "#{db_name}/#{table_name}/#{db_name}-#{table_name}-"
+        prefix = "#{db_name}/#{schema_name}/#{table_name}/#{db_name}-#{schema_name}-#{table_name}-"
         if (s3_prefix = @config[:s3_prefix])
           s3_prefix = s3_prefix.gsub(%r{\A/|/\Z}, '')
           prefix = "#{s3_prefix}/#{prefix}"
@@ -175,7 +178,7 @@ module BigShift
     end
 
     def redshift_table_schema
-      @redshift_table_schema ||= RedshiftTableSchema.new(@config[:rs_table_name], rs_connection)
+      @redshift_table_schema ||= RedshiftTableSchema.new(@config[:rs_schema_name], @config[:rs_table_name], rs_connection)
     end
 
     def big_query_dataset
@@ -212,6 +215,8 @@ module BigShift
         password: @config[:rs_credentials]['password'],
         sslmode: 'require'
       )
+      @rs_connection.exec("SET search_path = \"#{@config[:rs_schema_name]}\"")
+      @rs_connection
     end
 
     def cs_transfer_service

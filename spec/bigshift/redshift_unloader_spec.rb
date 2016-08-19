@@ -33,7 +33,7 @@ module BigShift
 
     before do
       allow(redshift_connection).to receive(:exec)
-      allow(redshift_connection).to receive(:exec_params).with(/^SELECT "column", .+ FROM "pg_table_def"/, ['my_table']).and_return(column_rows)
+      allow(redshift_connection).to receive(:exec_params).with(/^SELECT "column", .+ FROM "pg_table_def"/, ['my_schema', 'my_table']).and_return(column_rows)
     end
 
     describe '#unload' do
@@ -49,7 +49,7 @@ module BigShift
         allow(redshift_connection).to receive(:exec) do |sql|
           unload_command.replace(sql)
         end
-        unloader.unload_to('my_table', 's3://my-bucket/here/', unload_options)
+        unloader.unload_to('my_schema', 'my_table', 's3://my-bucket/here/', unload_options)
       end
 
       it 'executes an UNLOAD command' do
@@ -77,7 +77,7 @@ module BigShift
       end
 
       it 'explicitly selects all columns from the table' do
-        select_list = unload_command[/SELECT (.+) FROM "my_table"/, 1]
+        select_list = unload_command[/SELECT (.+) FROM "my_schema"."my_table"/, 1]
         aggregate_failures do
           expect(select_list).to include('"fax_number"')
           expect(select_list).to include('"id"')

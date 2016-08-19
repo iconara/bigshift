@@ -32,7 +32,7 @@ BigShift tells Redshift to compress the dumps by default, even if that means tha
 
 ## Arguments
 
-Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--bq-table`, `--max-bad-records`, `--steps` and `--[no-]compress` are required.
+Running `bigshift` without any arguments, or with `--help` will show the options. All except `--s3-prefix`, `--rs-schema`, `--bq-table`, `--max-bad-records`, `--steps` and `--[no-]compress` are required.
 
 ### GCP credentials
 
@@ -105,6 +105,10 @@ password: dGhpc2lzYWxzb2Jhc2U2NAo
 If you don't want to put the data dumped from Redshift directly into the root of the S3 bucket you can use the `--s3-prefix` to provide a prefix to where the dumps should be placed.
 
 Because of how GCS' Transfer Service works the transferred files will have exactly the same keys in the destination bucket, this cannot be configured.
+
+### Redshift schema
+
+By default the schema in Redshift is called `public`, but in case you're not using that one, you can use the argument `--rs-schema` to specify the schema your table is in.
 
 ### BigQuery table ID
 

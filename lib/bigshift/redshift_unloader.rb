@@ -6,12 +6,12 @@ module BigShift
       @logger = options[:logger] || NullLogger::INSTANCE
     end
 
-    def unload_to(table_name, s3_uri, options={})
-      table_schema = RedshiftTableSchema.new(table_name, @redshift_connection)
+    def unload_to(schema_name, table_name, s3_uri, options={})
+      table_schema = RedshiftTableSchema.new(schema_name, table_name, @redshift_connection)
       credentials_string = "aws_access_key_id=#{@aws_credentials.access_key_id};aws_secret_access_key=#{@aws_credentials.secret_access_key}"
       select_sql = 'SELECT '
       select_sql << table_schema.columns.map(&:to_sql).join(', ')
-      select_sql << %Q< FROM "#{table_name}">
+      select_sql << %Q< FROM "#{schema_name}"."#{table_name}">
       select_sql.gsub!('\'') { |s| '\\\'' }
       unload_sql = %Q<UNLOAD ('#{select_sql}')>
       unload_sql << %Q< TO '#{s3_uri}'>
