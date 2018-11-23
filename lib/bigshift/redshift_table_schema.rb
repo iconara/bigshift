@@ -8,7 +8,17 @@ module BigShift
 
     def columns
       @columns ||= begin
-        rows = @redshift_connection.exec_params(%|SELECT "column", "type", "notnull" FROM "pg_table_def" WHERE "schemaname" = $1 AND "tablename" = $2|, [@schema_name, @table_name])
+        query = p %{
+          SELECT "column", "type", "notnull"
+          FROM "pg_table_def" ptd, information_schema.columns isc
+          WHERE ptd.schemaname = isc.table_schema
+          AND ptd.tablename = isc.table_name
+          AND ptd.column = isc.column_name
+          AND "schemaname" = $1
+          AND "tablename" = $2
+          ORDER BY ordinal_position
+        }.gsub(/\s+/, " ").strip
+        rows = @redshift_connection.exec_params(query, [@schema_name, @table_name])
         if rows.count == 0
           raise sprintf('Table %s for schema %s not found', @table_name.inspect, @schema_name.inspect)
         else
@@ -18,7 +28,6 @@ module BigShift
             nullable = row['notnull'] == 'f'
             Column.new(name, type, nullable)
           end
-          columns.sort_by!(&:name)
           columns
         end
       end
