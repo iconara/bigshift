@@ -18,6 +18,7 @@ module BigShift
         load_configuration[:source_format] = 'CSV'
         load_configuration[:field_delimiter] = '\t'
         load_configuration[:quote] = '"'
+        load_configuration[:allow_quoted_newlines] = true
         load_configuration[:destination_table] = @table_data.table_reference
         load_configuration[:max_bad_records] = options[:max_bad_records] if options[:max_bad_records]
         job = Google::Apis::BigqueryV2::Job.new(
