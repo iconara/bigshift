@@ -60,12 +60,10 @@ module BigShift
 
       def to_sql
         case @type
-        when /^numeric/, /int/, /^double/, 'real'
+        when /^numeric/, /int/, /^double/, 'real', /^timestamp/
           sprintf('"%s"', @name)
         when /^character/
           sprintf(%q<('"' || REPLACE(REPLACE(REPLACE("%s", '"', '""'), '\\n', '\\\\n'), '\\r', '\\\\r') || '"')>, @name)
-        when /^timestamp/
-          sprintf('(EXTRACT(epoch FROM "%s") + EXTRACT(milliseconds FROM "%s")/1000.0)', @name, @name)
         when 'date'
           sprintf(%q<(TO_CHAR("%s", 'YYYY-MM-DD'))>, @name)
         when 'boolean'
