@@ -24,7 +24,7 @@ module BigShift
     DEFAULT_POLL_INTERVAL = 30
 
     def create_transfer_job(unload_manifest, cloud_storage_bucket, description, allow_overwrite)
-      now = @clock.now.utc
+      now = @clock.now.utc + 60
       Google::Apis::StoragetransferV1::TransferJob.new(
         description: description,
         project_id: @project_id,
@@ -32,7 +32,7 @@ module BigShift
         schedule: Google::Apis::StoragetransferV1::Schedule.new(
           schedule_start_date: Google::Apis::StoragetransferV1::Date.new(year: now.year, month: now.month, day: now.day),
           schedule_end_date: Google::Apis::StoragetransferV1::Date.new(year: now.year, month: now.month, day: now.day),
-          start_time_of_day: Google::Apis::StoragetransferV1::TimeOfDay.new(hours: now.hour, minutes: now.min + 1)
+          start_time_of_day: Google::Apis::StoragetransferV1::TimeOfDay.new(hours: now.hour, minutes: now.min)
         ),
         transfer_spec: Google::Apis::StoragetransferV1::TransferSpec.new(
           aws_s3_data_source: Google::Apis::StoragetransferV1::AwsS3Data.new(
