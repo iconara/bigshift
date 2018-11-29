@@ -20,6 +20,7 @@ module BigShift
       unload_sql << %q< DELIMITER '\t'>
       unload_sql << %q< GZIP> if options[:compression] || options[:compression].nil?
       unload_sql << %q< ALLOWOVERWRITE> if options[:allow_overwrite]
+      unload_sql << %q< MAXFILESIZE 3.9 GB>
       @logger.info(sprintf('Unloading Redshift table %s to %s', table_name, s3_uri))
       @redshift_connection.exec(unload_sql)
       @logger.info(sprintf('Unload of %s complete', table_name))
