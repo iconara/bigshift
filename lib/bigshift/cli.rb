@@ -43,12 +43,15 @@ module BigShift
       @config = parse_args(@argv)
       @factory = @factory_factory.call(@config)
       @logger = @factory.logger
+      @logger.debug('Setup complete')
     end
 
     def unload
       if run?(:unload)
+        @logger.debug('Running unload')
         s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}"
         @factory.redshift_unloader.unload_to(@config[:rs_schema_name], @config[:rs_table_name], s3_uri, allow_overwrite: false, compression: @config[:compression])
+        @logger.debug('Unload complete')
       else
         @logger.debug('Skipping unload')
       end
@@ -57,8 +60,10 @@ module BigShift
 
     def transfer
       if run?(:transfer)
+        @logger.debug('Running transfer')
         description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_schema_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
         @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
+        @logger.debug('Transfer complete')
       else
         @logger.debug('Skipping transfer')
       end
@@ -66,6 +71,7 @@ module BigShift
 
     def load
       if run?(:load)
+        @logger.debug('Querying Redshift schema')
         rs_table_schema = @factory.redshift_table_schema
         bq_dataset = @factory.big_query_dataset
         bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
@@ -74,7 +80,9 @@ module BigShift
         options[:schema] = rs_table_schema.to_big_query
         options[:allow_overwrite] = true
         options[:max_bad_records] = @config[:max_bad_records] if @config[:max_bad_records]
+        @logger.debug('Running load')
         bq_table.load(gcs_uri, options)
+        @logger.debug('Load complete')
       else
         @logger.debug('Skipping load')
       end
@@ -82,7 +90,9 @@ module BigShift
 
     def cleanup
       if run?(:cleanup)
+        @logger.debug('Running cleanup')
         @factory.cleaner.cleanup(@unload_manifest, @config[:cs_bucket_name])
+        @logger.debug('Cleanup complete')
       else
         @logger.debug('Skipping cleanup')
       end
