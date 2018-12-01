@@ -167,16 +167,6 @@ The certificates used by the Google APIs might not be installed on your system, 
 export SSL_CERT_FILE="$(find $GEM_HOME/gems -name 'google-api-client-*' | tail -n 1)/lib/cacerts.pem"
 ```
 
-### BigQuery says my files are not splittable and too large
-
-For example:
-
-> Input CSV files are not splittable and at least one of the files is larger than the maximum allowed size. Size is: 5838980665. Max allowed size is: 4294967296. Filename: gs://bigshift/foo/bar/foo-bar-0039_part_00.gz
-
-This happens when the (compressed) files exceed 4 GiB in size. Unfortunately it is not possible to control the size of the files produced by Redshift's `UNLOAD` command, and the size of the files will depend on the number of nodes in your cluster and the amount of data you're dumping.
-
-There are two options: either you use BigShift to get the dumps to GCS and then manually uncompress and load them (use `--steps unload,transfer`) or you dump without compression (use `--no-compression`). Keep in mind that without compression the bandwidth costs will be significanly higher.
-
 ### I get errors when the data is loaded into BigQuery
 
 This could be anything, but it could be things that aren't escaped properly when the data is dumped from Redshift. Try figuring out from the errors where the problem is and what the data looks like and open an issue. The more you can figure out yourself the more likely it is that you will get help. No one wants to trawl through your data, make an effort.
