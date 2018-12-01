@@ -36,7 +36,7 @@ Running `bigshift` without any arguments, or with `--help` will show the options
 
 ### GCP credentials
 
-The `--gcp-credentials` argument must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and chose JSON as the key type when prompted.
+You can provide GCP credentials either with the environment variable `GOOGLE_APPLICATION_CREDENTIALS` or with the `--gcp-credentials` argument. These must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and choose JSON as the key type when prompted. See the [GCP documentation](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually) for more information.
 
 If you haven't used Storage Transfer Service with your destination bucket before it might not have the right permissions setup, see below under [Troubleshooting](#insufficientpermissionswhentransferringtogcs) for more information.
 

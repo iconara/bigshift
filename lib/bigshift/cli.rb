@@ -106,7 +106,7 @@ module BigShift
     ].freeze
 
     ARGUMENTS = [
-      ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, :required],
+      ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, nil],
       ['--aws-credentials', 'PATH', String, :aws_credentials_path, nil],
       ['--rs-credentials', 'PATH', String, :rs_credentials_path, :required],
       ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
@@ -134,6 +134,9 @@ module BigShift
         parser.parse!(argv)
       rescue OptionParser::InvalidOption => e
         config_errors << e.message
+      end
+      if !config[:gcp_credentials_path] && ENV['GOOGLE_APPLICATION_CREDENTIALS']
+        config[:gcp_credentials_path] = ENV['GOOGLE_APPLICATION_CREDENTIALS']
       end
       %w[gcp aws rs].each do |prefix|
         if (path = config["#{prefix}_credentials_path".to_sym]) && File.exist?(path)
