@@ -29,5 +29,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'pg'
   s.add_runtime_dependency 'google-api-client', '~> 0.9'
   s.add_runtime_dependency 'googleauth'
+  s.add_runtime_dependency 'google-cloud-env'
   s.add_runtime_dependency 'aws-sdk'
 end

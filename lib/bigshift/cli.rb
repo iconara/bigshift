@@ -188,7 +188,7 @@ module BigShift
     end
 
     def cloud_storage_transfer
-      @cloud_storage_transfer ||= CloudStorageTransfer.new(cs_transfer_service, raw_gcp_credentials['project_id'], aws_credentials, logger: logger)
+      @cloud_storage_transfer ||= CloudStorageTransfer.new(cs_transfer_service, gcp_project, aws_credentials, logger: logger)
     end
 
     def redshift_table_schema
@@ -196,7 +196,7 @@ module BigShift
     end
 
     def big_query_dataset
-      @big_query_dataset ||= BigQuery::Dataset.new(bq_service, raw_gcp_credentials['project_id'], @config[:bq_dataset_id], logger: logger)
+      @big_query_dataset ||= BigQuery::Dataset.new(bq_service, gcp_project, @config[:bq_dataset_id], logger: logger)
     end
 
     def cleaner
@@ -281,15 +281,27 @@ module BigShift
       @aws_region ||= ((awsc = @config[:aws_credentials]) && awsc['region']) || ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
     end
 
-    def raw_gcp_credentials
-      @config[:gcp_credentials]
+    def gcp_project
+      if @config[:gcp_credentials]
+        @config[:gcp_credentials]['project_id']
+      else
+        Google::Cloud.env.project_id
+      end
     end
 
     def gcp_credentials
-      @gcp_credentials ||= Google::Auth::ServiceAccountCredentials.make_creds(
-        json_key_io: StringIO.new(JSON.dump(raw_gcp_credentials)),
-        scope: Google::Apis::StoragetransferV1::AUTH_CLOUD_PLATFORM
-      )
+      @gcp_credentials ||= begin
+        if @config[:gcp_credentials]
+          credentials = Google::Auth::ServiceAccountCredentials.make_creds(
+            json_key_io: StringIO.new(JSON.dump(@config[:gcp_credentials])),
+            scope: Google::Apis::StoragetransferV1::AUTH_CLOUD_PLATFORM
+          )
+        elsif (credentials = Google::Auth::GCECredentials.new)
+          credentials
+        else
+          raise 'No GCP credentials found'
+        end
+      end
     end
   end
 end
