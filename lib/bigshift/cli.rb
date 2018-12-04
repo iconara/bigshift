@@ -221,7 +221,7 @@ module BigShift
     private
 
     def rs_connection
-      @rs_connection ||= PG.connect(
+      @rs_connection = PG.connect(
         host: @config[:rs_credentials]['host'],
         port: @config[:rs_credentials]['port'],
         dbname: @config[:rs_database_name],
