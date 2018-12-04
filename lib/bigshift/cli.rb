@@ -266,10 +266,7 @@ module BigShift
       @aws_credentials ||= begin
         if @config[:aws_credentials]
           credentials = Aws::Credentials.new(*@config[:aws_credentials].values_at('access_key_id', 'secret_access_key'))
-        else
-          credentials = nil
-        end
-        if (credentials = Aws::CredentialProviderChain.new(credentials).resolve)
+        elsif (credentials = Aws::CredentialProviderChain.new().resolve)
           credentials
         else
           raise 'No AWS credentials found'
