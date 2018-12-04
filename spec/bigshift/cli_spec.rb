@@ -298,7 +298,7 @@ module BigShift
         end
       end
 
-      %w[gcp rs].each do |prefix|
+      %w[rs].each do |prefix|
         context "when --#{prefix}-credentials is not specified" do
           let :argv do
             a = super()
