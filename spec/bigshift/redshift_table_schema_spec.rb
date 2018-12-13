@@ -24,14 +24,15 @@ module BigShift
     describe '#columns' do
       it 'queries the pg_table_def table filtering by the specified table' do
         table_schema.columns
-        expect(redshift_connection).to have_received(:exec_params).with(
-          include(%q<FROM pg_table_def ptd, information_schema.columns isc>).
-          and(include(%q<WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name>)).
-          and(include(%q<ORDER BY ordinal_position>)), anything
-        )
+        expect(redshift_connection).to have_received(:exec_params).with(anything, ['some_schema', 'some_table'])
       end
 
       it 'loads the column names, types and nullity' do
+        table_schema.columns
+        expect(redshift_connection).to have_received(:exec_params).with(/SELECT "column", "type", "notnull"/, anything)
+      end
+
+      it 'identifies and preserves the columnn ordering' do
         table_schema.columns
         expect(redshift_connection).to have_received(:exec_params).with(
           include(%q<FROM pg_table_def ptd, information_schema.columns isc>).
