@@ -33,7 +33,7 @@ module BigShift
 
     before do
       allow(redshift_connection).to receive(:exec)
-      allow(redshift_connection).to receive(:exec_params).with(/^SELECT "column", .+ FROM "pg_table_def"/, ['my_schema', 'my_table']).and_return(column_rows)
+      allow(redshift_connection).to receive(:exec_params).with(/^SELECT "column", .+ FROM pg_table_def/, ['my_schema', 'my_table']).and_return(column_rows)
     end
 
     describe '#unload' do

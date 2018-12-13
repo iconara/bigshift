@@ -18,18 +18,26 @@ module BigShift
     end
 
     before do
-      allow(redshift_connection).to receive(:exec_params).with(/SELECT .+ FROM "pg_table_def" ptd, information_schema.columns isc WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name AND "schemaname" = \$1 AND "tablename" = \$2 ORDER BY ordinal_position/, anything).and_return(column_rows)
+      allow(redshift_connection).to receive(:exec_params).with(/FROM pg_table_def/, anything).and_return(column_rows)
     end
 
     describe '#columns' do
-      it 'queries the "pg_table_def" table filtering by the specified table' do
+      it 'queries the pg_table_def table filtering by the specified table' do
         table_schema.columns
-        expect(redshift_connection).to have_received(:exec_params).with(anything, ['some_schema', 'some_table'])
+        expect(redshift_connection).to have_received(:exec_params).with(
+          include(%q<FROM pg_table_def ptd, information_schema.columns isc>).
+          and(include(%q<WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name>)).
+          and(include(%q<ORDER BY ordinal_position>)), anything
+        )
       end
 
       it 'loads the column names, types and nullity' do
         table_schema.columns
-        expect(redshift_connection).to have_received(:exec_params).with(/SELECT "column", "type", "notnull" FROM "pg_table_def" ptd, information_schema.columns isc WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name AND "schemaname" = \$1 AND "tablename" = \$2 ORDER BY ordinal_position/, anything)
+        expect(redshift_connection).to have_received(:exec_params).with(
+          include(%q<FROM pg_table_def ptd, information_schema.columns isc>).
+          and(include(%q<WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name>)).
+          and(include(%q<ORDER BY ordinal_position>)), anything
+        )
       end
 
       it 'returns all columns as Column objects' do

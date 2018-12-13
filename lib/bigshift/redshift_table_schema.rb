@@ -8,16 +8,16 @@ module BigShift
 
     def columns
       @columns ||= begin
-        query = p %{
+        query = %{
           SELECT "column", "type", "notnull"
-          FROM "pg_table_def" ptd, information_schema.columns isc
+          FROM pg_table_def ptd, information_schema.columns isc
           WHERE ptd.schemaname = isc.table_schema
           AND ptd.tablename = isc.table_name
           AND ptd.column = isc.column_name
-          AND "schemaname" = $1
-          AND "tablename" = $2
+          AND schemaname = $1
+          AND tablename = $2
           ORDER BY ordinal_position
-        }.gsub(/\s+/, " ").strip
+        }.gsub(/\s+/, ' ').strip
         rows = @redshift_connection.exec_params(query, [@schema_name, @table_name])
         if rows.count == 0
           raise sprintf('Table %s for schema %s not found', @table_name.inspect, @schema_name.inspect)
