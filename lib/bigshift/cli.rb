@@ -36,7 +36,7 @@ module BigShift
         if ['access_key_id', 'match'].any? { |key| e.message.include? key }
           raise CliError.new('AWS configuration missing or malformed: ' + e.message, e.backtrace, @usage)
         else
-          raise CliError.new(e.message, e.backtrace, @usage)
+          raise e
         end
       rescue Signet::AuthorizationError => e
         raise CliError.new('GCP configuration missing or malformed: ' + e.message, e.backtrace, @usage)
