@@ -181,6 +181,10 @@ You can verify that this has been set up by inspecting the permissions for your 
 
 If the permission on the bucket isn't there, the Storage Transfer service won't be able to find the bucket and will fail. You might see an error like "Failed to obtain the location of the destination Google Cloud Storage (GCS) bucket due to insufficient permissions".
 
+### I get a NoMethodError: undefined method 'match' for nil:NilClass
+
+This appears to be a bug in the AWS SDK that manifests when your [AWS credentials](#aws-credentials) have not been properly specified.
+
 # Copyright
 
 © 2016 Theo Hultberg and contributors, see LICENSE.txt (BSD 3-Clause).

@@ -32,12 +32,8 @@ module BigShift
         load
         cleanup
         nil
-      rescue NoMethodError => e
-        if ['access_key_id', 'match'].any? { |key| e.message.include? key }
-          raise CliError.new('AWS configuration missing or malformed: ' + e.message, e.backtrace, @usage)
-        else
-          raise e
-        end
+      rescue Aws::Errors::MissingRegionError, Aws::Sigv4::Errors::MissingCredentialsError => e
+        raise CliError.new('AWS configuration missing or malformed: ' + e.message, e.backtrace, @usage)
       rescue Signet::AuthorizationError => e
         raise CliError.new('GCP configuration missing or malformed: ' + e.message, e.backtrace, @usage)
       end
@@ -284,7 +280,17 @@ module BigShift
     end
 
     def aws_region
-      @aws_region ||= ((awsc = @config[:aws_credentials]) && awsc['region']) || ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
+      @aws_region ||= begin
+        if @config[:aws_credentials]
+          region = @config[:aws_credentials]['region']
+        else
+          region = ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
+        end
+
+        if !region
+          raise BigShiftError.new('AWS Region not specified')
+        end
+      end
     end
 
     def gcp_project
