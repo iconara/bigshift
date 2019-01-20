@@ -36,7 +36,9 @@ Running `bigshift` without any arguments, or with `--help` will show the options
 
 ### GCP credentials
 
-The `--gcp-credentials` argument must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and chose JSON as the key type when prompted.
+You can provide GCP credentials either with the environment variable `GOOGLE_APPLICATION_CREDENTIALS` or with the `--gcp-credentials` argument. These must be a path to a JSON file that contains a public/private key pair for a GCP user. The best way to obtain this is to create a new service account and choose JSON as the key type when prompted. See the [GCP documentation](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually) for more information.
+
+If Bigshift is run directly on Compute Engine, Kubernetes Engine or App Engine flexible environment, the embedded service account will be used instead. Please note the service account will need to have the `cloud-platform` authorization scope as detailed in the [Storage Transfer Service documentation](https://cloud.google.com/storage-transfer/docs/create-client#scope).
 
 If you haven't used Storage Transfer Service with your destination bucket before it might not have the right permissions setup, see below under [Troubleshooting](#insufficientpermissionswhentransferringtogcs) for more information.
 
@@ -165,16 +167,6 @@ The certificates used by the Google APIs might not be installed on your system, 
 export SSL_CERT_FILE="$(find $GEM_HOME/gems -name 'google-api-client-*' | tail -n 1)/lib/cacerts.pem"
 ```
 
-### BigQuery says my files are not splittable and too large
-
-For example:
-
-> Input CSV files are not splittable and at least one of the files is larger than the maximum allowed size. Size is: 5838980665. Max allowed size is: 4294967296. Filename: gs://bigshift/foo/bar/foo-bar-0039_part_00.gz
-
-This happens when the (compressed) files exceed 4 GiB in size. Unfortunately it is not possible to control the size of the files produced by Redshift's `UNLOAD` command, and the size of the files will depend on the number of nodes in your cluster and the amount of data you're dumping.
-
-There are two options: either you use BigShift to get the dumps to GCS and then manually uncompress and load them (use `--steps unload,transfer`) or you dump without compression (use `--no-compression`). Keep in mind that without compression the bandwidth costs will be significanly higher.
-
 ### I get errors when the data is loaded into BigQuery
 
 This could be anything, but it could be things that aren't escaped properly when the data is dumped from Redshift. Try figuring out from the errors where the problem is and what the data looks like and open an issue. The more you can figure out yourself the more likely it is that you will get help. No one wants to trawl through your data, make an effort.
@@ -188,6 +180,10 @@ The easiest way for now to get that ID applied is to just create a manual Transf
 You can verify that this has been set up by inspecting the permissions for your bucket and check that there is a user with a name like `storage-transfer-<ID>@partnercontent.gserviceaccount.com` that is set up as a writer.
 
 If the permission on the bucket isn't there, the Storage Transfer service won't be able to find the bucket and will fail. You might see an error like "Failed to obtain the location of the destination Google Cloud Storage (GCS) bucket due to insufficient permissions".
+
+### I get a NoMethodError: undefined method 'match' for nil:NilClass
+
+This appears to be a bug in the AWS SDK that manifests when your [AWS credentials](#aws-credentials) have not been properly specified.
 
 # Copyright
 

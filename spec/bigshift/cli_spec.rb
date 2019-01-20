@@ -298,41 +298,40 @@ module BigShift
         end
       end
 
-      %w[gcp rs].each do |prefix|
-        context "when --#{prefix}-credentials is not specified" do
-          let :argv do
-            a = super()
-            i = a.index("--#{prefix}-credentials")
-            a.delete_at(i)
-            a.delete_at(i)
-            a
-          end
 
-          it 'raises an error' do
-            error = nil
-            begin
-              cli.run
-            rescue => e
-              error = e
-            end
-            expect(error.details).to include("--#{prefix}-credentials is required")
-          end
+      context "when --rs-credentials is not specified" do
+        let :argv do
+          a = super()
+          i = a.index("--rs-credentials")
+          a.delete_at(i)
+          a.delete_at(i)
+          a
         end
 
-        context "when the path given to --#{prefix}-credentials does not exist" do
-          before do
-            FileUtils.rm_f("#{prefix}-credentials.yml")
+        it 'raises an error' do
+          error = nil
+          begin
+            cli.run
+          rescue => e
+            error = e
           end
+          expect(error.details).to include("--rs-credentials is required")
+        end
+      end
 
-          it 'raises an error' do
-            error = nil
-            begin
-              cli.run
-            rescue => e
-              error = e
-            end
-            expect(error.details).to include(%<"#{prefix}-credentials.yml" does not exist>)
+      context "when the path given to --rs-credentials does not exist" do
+        before do
+          FileUtils.rm_f("rs-credentials.yml")
+        end
+
+        it 'raises an error' do
+          error = nil
+          begin
+            cli.run
+          rescue => e
+            error = e
           end
+          expect(error.details).to include(%<"rs-credentials.yml" does not exist>)
         end
       end
 

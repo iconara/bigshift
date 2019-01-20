@@ -18,6 +18,7 @@ module BigShift
         load_configuration[:source_format] = 'CSV'
         load_configuration[:field_delimiter] = '\t'
         load_configuration[:quote] = '"'
+        load_configuration[:allow_quoted_newlines] = true
         load_configuration[:destination_table] = @table_data.table_reference
         load_configuration[:max_bad_records] = options[:max_bad_records] if options[:max_bad_records]
         job = Google::Apis::BigqueryV2::Job.new(
@@ -36,11 +37,7 @@ module BigShift
             else
               job.status.errors.each do |error|
                 message = %<Load error: "#{error.message}">
-                if error.location
-                  file, line, field = error.location.split('/').map { |s| s.split(':').last.strip }
-                  message << " at file #{file}, line #{line}"
-                  message << ", field #{field}" if field
-                end
+                message << " in #{error.location}" if error.location
                 @logger.debug(message)
               end
               raise job.status.error_result.message

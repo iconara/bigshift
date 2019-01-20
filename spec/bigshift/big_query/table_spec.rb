@@ -212,9 +212,9 @@ module BigShift
             it 'logs the errors' do
               table.load('my_uri') rescue nil
               aggregate_failures do
-                expect(logger).to have_received(:debug).with('Load error: "Bad thing" at file 0, line 5, field 18')
-                expect(logger).to have_received(:debug).with('Load error: "Not correct" at file 1, line 6')
-                expect(logger).to have_received(:debug).with('Load error: "Do better" at file 2, line 7, field 20')
+                expect(logger).to have_received(:debug).with('Load error: "Bad thing" in File: 0 / Line:5 / Field:18')
+                expect(logger).to have_received(:debug).with('Load error: "Not correct" in File: 1 / Line:6')
+                expect(logger).to have_received(:debug).with('Load error: "Do better" in File: 2 / Line:7 / Field:20')
               end
             end
 

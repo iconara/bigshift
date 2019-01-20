@@ -18,11 +18,11 @@ module BigShift
     end
 
     before do
-      allow(redshift_connection).to receive(:exec_params).with(/SELECT .+ FROM "pg_table_def" WHERE "schemaname" = \$1 AND "tablename" = \$2/, anything).and_return(column_rows)
+      allow(redshift_connection).to receive(:exec_params).with(/FROM pg_table_def/, anything).and_return(column_rows)
     end
 
     describe '#columns' do
-      it 'queries the "pg_table_def" table filtering by the specified table' do
+      it 'queries the pg_table_def table filtering by the specified table' do
         table_schema.columns
         expect(redshift_connection).to have_received(:exec_params).with(anything, ['some_schema', 'some_table'])
       end
@@ -30,6 +30,15 @@ module BigShift
       it 'loads the column names, types and nullity' do
         table_schema.columns
         expect(redshift_connection).to have_received(:exec_params).with(/SELECT "column", "type", "notnull"/, anything)
+      end
+
+      it 'identifies and preserves the columnn ordering' do
+        table_schema.columns
+        expect(redshift_connection).to have_received(:exec_params).with(
+          include(%q<FROM pg_table_def ptd, information_schema.columns isc>).
+          and(include(%q<WHERE ptd.schemaname = isc.table_schema AND ptd.tablename = isc.table_name AND ptd.column = isc.column_name>)).
+          and(include(%q<ORDER BY ordinal_position>)), anything
+        )
       end
 
       it 'returns all columns as Column objects' do
@@ -46,9 +55,9 @@ module BigShift
         end
       end
 
-      it 'returns the columns in alphabetical order' do
+      it 'returns the columns in original order' do
         columns = table_schema.columns
-        expect(columns.map(&:name)).to eq(%w[fax_number id name year_of_birth])
+        expect(columns.map(&:name)).to eq(%w[id name fax_number year_of_birth])
       end
     end
 
@@ -70,8 +79,8 @@ module BigShift
           end
         end
 
-        it 'contains all Redshift columns as fields, in alphabetical order' do
-          expect(big_query_table_schema.fields.map(&:name)).to eq(%w[fax_number id name year_of_birth])
+        it 'contains all Redshift columns as fields, in original order' do
+          expect(big_query_table_schema.fields.map(&:name)).to eq(%w[id name fax_number year_of_birth])
         end
 
         it 'sets the mode to REQUIRED where NOT NULL and NULLABLE where NULL in Redshift' do
@@ -231,16 +240,6 @@ module BigShift
           it 'returns SQL that converts the value to 1, 0 or NULL' do
             expect(column.to_sql).to eq('(CASE WHEN "the_column" IS NULL THEN NULL WHEN "the_column" THEN 1 ELSE 0 END)')
           end
-        end
-      end
-
-      context 'when the column type is TIMESTAMP' do
-        let :type do
-          'timestamp without time zone'
-        end
-
-        it 'returns SQL that converts the timestamp to a UNIX timestamp with fractional seconds' do
-          expect(column.to_sql).to eq('(EXTRACT(epoch FROM "the_column") + EXTRACT(milliseconds FROM "the_column")/1000.0)')
         end
       end
 

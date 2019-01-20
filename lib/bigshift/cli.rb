@@ -25,12 +25,18 @@ module BigShift
     end
 
     def run
-      setup
-      unload
-      transfer
-      load
-      cleanup
-      nil
+      begin
+        setup
+        unload
+        transfer
+        load
+        cleanup
+        nil
+      rescue Aws::Errors::MissingRegionError, Aws::Sigv4::Errors::MissingCredentialsError => e
+        raise CliError.new('AWS configuration missing or malformed: ' + e.message, e.backtrace, @usage)
+      rescue Signet::AuthorizationError => e
+        raise CliError.new('GCP configuration missing or malformed: ' + e.message, e.backtrace, @usage)
+      end
     end
 
     private
@@ -43,12 +49,15 @@ module BigShift
       @config = parse_args(@argv)
       @factory = @factory_factory.call(@config)
       @logger = @factory.logger
+      @logger.debug('Setup complete')
     end
 
     def unload
       if run?(:unload)
+        @logger.debug('Running unload')
         s3_uri = "s3://#{@config[:s3_bucket_name]}/#{s3_table_prefix}"
         @factory.redshift_unloader.unload_to(@config[:rs_schema_name], @config[:rs_table_name], s3_uri, allow_overwrite: false, compression: @config[:compression])
+        @logger.debug('Unload complete')
       else
         @logger.debug('Skipping unload')
       end
@@ -57,8 +66,10 @@ module BigShift
 
     def transfer
       if run?(:transfer)
+        @logger.debug('Running transfer')
         description = "bigshift-#{@config[:rs_database_name]}-#{@config[:rs_schema_name]}-#{@config[:rs_table_name]}-#{Time.now.utc.strftime('%Y%m%dT%H%M')}"
         @factory.cloud_storage_transfer.copy_to_cloud_storage(@unload_manifest, @config[:cs_bucket_name], description: description, allow_overwrite: false)
+        @logger.debug('Transfer complete')
       else
         @logger.debug('Skipping transfer')
       end
@@ -66,6 +77,7 @@ module BigShift
 
     def load
       if run?(:load)
+        @logger.debug('Querying Redshift schema')
         rs_table_schema = @factory.redshift_table_schema
         bq_dataset = @factory.big_query_dataset
         bq_table = bq_dataset.table(@config[:bq_table_id]) || bq_dataset.create_table(@config[:bq_table_id])
@@ -74,7 +86,9 @@ module BigShift
         options[:schema] = rs_table_schema.to_big_query
         options[:allow_overwrite] = true
         options[:max_bad_records] = @config[:max_bad_records] if @config[:max_bad_records]
+        @logger.debug('Running load')
         bq_table.load(gcs_uri, options)
+        @logger.debug('Load complete')
       else
         @logger.debug('Skipping load')
       end
@@ -82,7 +96,9 @@ module BigShift
 
     def cleanup
       if run?(:cleanup)
+        @logger.debug('Running cleanup')
         @factory.cleaner.cleanup(@unload_manifest, @config[:cs_bucket_name])
+        @logger.debug('Cleanup complete')
       else
         @logger.debug('Skipping cleanup')
       end
@@ -96,7 +112,7 @@ module BigShift
     ].freeze
 
     ARGUMENTS = [
-      ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, :required],
+      ['--gcp-credentials', 'PATH', String, :gcp_credentials_path, nil],
       ['--aws-credentials', 'PATH', String, :aws_credentials_path, nil],
       ['--rs-credentials', 'PATH', String, :rs_credentials_path, :required],
       ['--rs-database', 'DB_NAME', String, :rs_database_name, :required],
@@ -125,6 +141,9 @@ module BigShift
       rescue OptionParser::InvalidOption => e
         config_errors << e.message
       end
+      if !config[:gcp_credentials_path] && ENV['GOOGLE_APPLICATION_CREDENTIALS']
+        config[:gcp_credentials_path] = ENV['GOOGLE_APPLICATION_CREDENTIALS']
+      end
       %w[gcp aws rs].each do |prefix|
         if (path = config["#{prefix}_credentials_path".to_sym]) && File.exist?(path)
           config["#{prefix}_credentials".to_sym] = YAML.load(File.read(path))
@@ -144,8 +163,9 @@ module BigShift
       else
         config[:steps] = STEPS
       end
+      @usage = parser.to_s
       unless config_errors.empty?
-        raise CliError.new('Configuration missing or malformed', config_errors, parser.to_s)
+        raise CliError.new('Configuration missing or malformed', config_errors, @usage)
       end
       config
     end
@@ -171,19 +191,19 @@ module BigShift
     end
 
     def redshift_unloader
-      @redshift_unloader ||= RedshiftUnloader.new(rs_connection, aws_credentials, logger: logger)
+      @redshift_unloader ||= RedshiftUnloader.new(create_rs_connection, aws_credentials, logger: logger)
     end
 
     def cloud_storage_transfer
-      @cloud_storage_transfer ||= CloudStorageTransfer.new(cs_transfer_service, raw_gcp_credentials['project_id'], aws_credentials, logger: logger)
+      @cloud_storage_transfer ||= CloudStorageTransfer.new(cs_transfer_service, gcp_project, aws_credentials, logger: logger)
     end
 
     def redshift_table_schema
-      @redshift_table_schema ||= RedshiftTableSchema.new(@config[:rs_schema_name], @config[:rs_table_name], rs_connection)
+      @redshift_table_schema ||= RedshiftTableSchema.new(@config[:rs_schema_name], @config[:rs_table_name], create_rs_connection)
     end
 
     def big_query_dataset
-      @big_query_dataset ||= BigQuery::Dataset.new(bq_service, raw_gcp_credentials['project_id'], @config[:bq_dataset_id], logger: logger)
+      @big_query_dataset ||= BigQuery::Dataset.new(bq_service, gcp_project, @config[:bq_dataset_id], logger: logger)
     end
 
     def cleaner
@@ -207,8 +227,8 @@ module BigShift
 
     private
 
-    def rs_connection
-      @rs_connection ||= PG.connect(
+    def create_rs_connection
+      rs_connection = PG.connect(
         host: @config[:rs_credentials]['host'],
         port: @config[:rs_credentials]['port'],
         dbname: @config[:rs_database_name],
@@ -216,13 +236,13 @@ module BigShift
         password: @config[:rs_credentials]['password'],
         sslmode: 'require'
       )
-      socket = Socket.for_fd(@rs_connection.socket)
+      socket = Socket.for_fd(rs_connection.socket)
       socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, 5)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, 2)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, 2) if defined?(Socket::TCP_KEEPIDLE)
-      @rs_connection.exec("SET search_path = \"#{@config[:rs_schema_name]}\"")
-      @rs_connection
+      rs_connection.exec("SET search_path = \"#{@config[:rs_schema_name]}\"")
+      rs_connection
     end
 
     def cs_transfer_service
@@ -254,29 +274,44 @@ module BigShift
         if @config[:aws_credentials]
           credentials = Aws::Credentials.new(*@config[:aws_credentials].values_at('access_key_id', 'secret_access_key'))
         else
-          credentials = nil
-        end
-        if (credentials = Aws::CredentialProviderChain.new(credentials).resolve)
-          credentials
-        else
-          raise 'No AWS credentials found'
+          credentials = Aws::CredentialProviderChain.new.resolve
         end
       end
     end
 
     def aws_region
-      @aws_region ||= ((awsc = @config[:aws_credentials]) && awsc['region']) || ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
+      @aws_region ||= begin
+        if @config[:aws_credentials]
+          region = @config[:aws_credentials]['region']
+        else
+          region = ENV['AWS_REGION'] || ENV['AWS_DEFAULT_REGION']
+        end
+
+        if !region
+          raise BigShiftError.new('AWS Region not specified')
+        end
+      end
     end
 
-    def raw_gcp_credentials
-      @config[:gcp_credentials]
+    def gcp_project
+      if @config[:gcp_credentials]
+        @config[:gcp_credentials]['project_id']
+      else
+        Google::Cloud.env.project_id
+      end
     end
 
     def gcp_credentials
-      @gcp_credentials ||= Google::Auth::ServiceAccountCredentials.make_creds(
-        json_key_io: StringIO.new(JSON.dump(raw_gcp_credentials)),
-        scope: Google::Apis::StoragetransferV1::AUTH_CLOUD_PLATFORM
-      )
+      @gcp_credentials ||= begin
+        if @config[:gcp_credentials]
+          credentials = Google::Auth::ServiceAccountCredentials.make_creds(
+            json_key_io: StringIO.new(JSON.dump(@config[:gcp_credentials])),
+            scope: Google::Apis::StoragetransferV1::AUTH_CLOUD_PLATFORM
+          )
+        else
+          credentials = Google::Auth::GCECredentials.new
+        end
+      end
     end
   end
 end
