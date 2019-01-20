@@ -2,7 +2,7 @@ require 'google/apis/bigquery_v2'
 require 'google/apis/storagetransfer_v1'
 require 'google/apis/storage_v1'
 require 'google/cloud/env'
-require 'aws-sdk'
+require 'aws-sdk-s3'
 
 module BigShift
   BigShiftError = Class.new(StandardError)
